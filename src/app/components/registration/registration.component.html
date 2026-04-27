@@ -1,0 +1,73 @@
+<div class="bg-container">
+    <div class="bg-overlay"></div>
+</div>
+
+<div class="main-container">
+    <div class="premium-card" @fadeInUp>
+        <div class="form-header">
+            <img src="assets/logo.webp" alt="CQ Logo" style="max-height: 80px; margin-bottom: 0;">
+            <h1 class="gradient-text">¡FELICIDADES, YA GANASTE!</h1>
+            <p class="text-secondary text-lg">
+                Confirma por favor los requisitos del sistema antes de ingresar tu código de Recompensa:
+            </p>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" #registrationForm="ngForm" @staggerFade>
+            <div class="form-group">
+                <label class="form-label" for="code">Código de recompensa</label>
+                <input pInputText id="code" name="code" [(ngModel)]="model.code" required 
+                       placeholder="Ingresa tu código" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Correo electrónico</label>
+                <input pInputText id="email" name="email" [(ngModel)]="model.email" required email 
+                       placeholder="ejemplo@correo.com" />
+            </div>
+
+            <div class="checkbox-group">
+                <p-checkbox name="privacy" [(ngModel)]="model.privacy" [binary]="true" inputId="privacy" required></p-checkbox>
+                <label for="privacy" class="text-sm text-secondary cursor-pointer">
+                    He leído y acepto los <a href="#" class="text-primary font-bold">términos y condiciones</a>
+                </label>
+            </div>
+
+            <div class="captcha-container">
+                <p-checkbox name="captcha" [(ngModel)]="model.captcha" [binary]="true" label="No soy un robot (Captcha)"></p-checkbox>
+            </div>
+
+            <p-button label="Continuar" icon="pi pi-arrow-right" iconPos="right" type="submit" 
+                      [disabled]="!registrationForm.form.valid || !model.privacy || !model.captcha"
+                      [loading]="loading"></p-button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal -->
+<p-dialog header="Datos de Telefonía" [(visible)]="showModal" [modal]="true" [style]="{width: '500px'}" 
+          [closable]="false" [draggable]="false" [resizable]="false">
+    <div class="p-fluid py-4">
+        <div class="field mb-4">
+            <label for="telefonia" class="form-label">Telefonía</label>
+            <p-dropdown id="telefonia" [options]="telefoniaOptions" [(ngModel)]="telephonyModel.idTelefonia" 
+                        optionLabel="Nombre" optionValue="idTelefonia" placeholder="Selecciona tu compañía"></p-dropdown>
+        </div>
+        <div class="field mb-4">
+            <label for="phone" class="form-label">Teléfono</label>
+            <input pInputText id="phone" [(ngModel)]="telephonyModel.phone" type="tel" placeholder="10 dígitos" maxlength="10" />
+        </div>
+        <div class="field mb-4">
+            <label for="confirmPhone" class="form-label">Comprobar teléfono</label>
+            <input pInputText id="confirmPhone" [(ngModel)]="telephonyModel.confirmPhone" type="tel" placeholder="Confirma tu número" maxlength="10" />
+        </div>
+        
+        <div *ngIf="telephonyModel.phone && telephonyModel.confirmPhone && telephonyModel.phone !== telephonyModel.confirmPhone" 
+             class="text-red-600 text-sm mb-3 font-semibold">
+            <i class="pi pi-exclamation-circle mr-1"></i> Los números de teléfono no coinciden.
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <p-button label="Confirmar" icon="pi pi-check" (click)="confirmTelephony()" 
+                  [disabled]="!isTelephonyValid()" [loading]="loadingModal"></p-button>
+    </ng-template>
+</p-dialog>
