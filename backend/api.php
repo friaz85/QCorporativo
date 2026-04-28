@@ -38,9 +38,8 @@ function validateCode($mysqli) {
         return;
     }
 
-    // 1. Buscar código y unirse con proyecto para ver tipo
     $stmt = $mysqli->prepare("
-        SELECT ce.*, p.multirecompensa, p.nombrePdf, p.ejeX, p.ejeY, p.fuenteTexto, p.colorTexto, p.Proyecto 
+        SELECT ce.*, p.multiRecompensa, p.nombrePdf, p.ejeX, p.ejeY, p.fuenteTexto, p.colorTexto, p.Proyecto 
         FROM tblCodigoEntrada ce 
         JOIN tblProyecto p ON ce.idProyecto = p.idProyecto 
         WHERE ce.Codigo = ?
@@ -54,9 +53,8 @@ function validateCode($mysqli) {
         return;
     }
 
-    // 2. Escenario: Código ya utilizado (Activo = 0)
+    // Escenario: Ya utilizado
     if ($codigo['Activo'] == 0) {
-        // Verificar si el correo coincide con el registro
         $stmtReg = $mysqli->prepare("
             SELECT r.*, u.Correo 
             FROM tblRegistro r 
@@ -80,10 +78,10 @@ function validateCode($mysqli) {
         return;
     }
 
-    // 3. Escenario: Nuevo Canje (Activo = 1)
+    // Escenario: Nuevo Canje (Activo = 1)
     
-    // Si es multirecompensa, devolvemos la lista de opciones
-    if ($codigo['multirecompensa'] == 1) {
+    // CASO 1: Multirecompensa (El usuario elige)
+    if ($codigo['multiRecompensa'] == 1) {
         $stmtRewards = $mysqli->prepare("
             SELECT r.idRecompensa, r.Nombre, r.TA 
             FROM tblRecompensa r 
@@ -105,24 +103,49 @@ function validateCode($mysqli) {
         return;
     }
 
-    // Si es individual, verificar si es TA
-    $idRecompensa = $codigo['idRecompensa'];
-    $stmtRec = $mysqli->prepare("SELECT TA, Nombre FROM tblRecompensa WHERE idRecompensa = ?");
-    $stmtRec->bind_param("i", $idRecompensa);
-    $stmtRec->execute();
-    $recompensa = $stmtRec->get_result()->fetch_assoc();
+    // CASO 2: Recompensa Directa (Ya viene asignada en tblCodigoEntrada)
+    if ($codigo['multiRecompensa'] == 2) {
+        $idRecompensa = $codigo['idRecompensa'];
+        $idCS = $codigo['idCodigoSalida'] ?? 0;
+        
+        $stmtRec = $mysqli->prepare("SELECT TA, Nombre FROM tblRecompensa WHERE idRecompensa = ?");
+        $stmtRec->bind_param("i", $idRecompensa);
+        $stmtRec->execute();
+        $recompensa = $stmtRec->get_result()->fetch_assoc();
 
-    if ($recompensa['TA'] == 1) {
-        echo json_encode([
-            'success' => true,
-            'status' => 'REQUIRE_TELEPHONY',
-            'idProyecto' => $codigo['idProyecto'],
-            'idRecompensa' => $idRecompensa
-        ]);
-    } else {
-        // Canje directo (Individual + No TA)
-        $result = finalizeRedemption($mysqli, $codigo, $email, $idRecompensa);
-        echo json_encode($result);
+        if ($recompensa['TA'] == 1) {
+            echo json_encode([
+                'success' => true,
+                'status' => 'REQUIRE_TELEPHONY',
+                'idProyecto' => $codigo['idProyecto'],
+                'idRecompensa' => $idRecompensa
+            ]);
+        } else {
+            $result = finalizeRedemption($mysqli, $codigo, $email, $idRecompensa, $idCS);
+            echo json_encode($result);
+        }
+        return;
+    }
+
+    // CASO 0: Individual (Sistema asigna idCodigoSalida)
+    if ($codigo['multiRecompensa'] == 0) {
+        $idRecompensa = $codigo['idRecompensa'];
+        $stmtRec = $mysqli->prepare("SELECT TA, Nombre FROM tblRecompensa WHERE idRecompensa = ?");
+        $stmtRec->bind_param("i", $idRecompensa);
+        $stmtRec->execute();
+        $recompensa = $stmtRec->get_result()->fetch_assoc();
+
+        if ($recompensa['TA'] == 1) {
+            echo json_encode([
+                'success' => true,
+                'status' => 'REQUIRE_TELEPHONY',
+                'idProyecto' => $codigo['idProyecto'],
+                'idRecompensa' => $idRecompensa
+            ]);
+        } else {
+            $result = finalizeRedemption($mysqli, $codigo, $email, $idRecompensa);
+            echo json_encode($result);
+        }
     }
 }
 
@@ -160,7 +183,7 @@ function selectReward($mysqli) {
     }
 }
 
-function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa) {
+function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa, $preAssignedCS = 0) {
     $date = date('Y-m-d H:i:s');
     
     // 1. Usuario
@@ -178,18 +201,32 @@ function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa) {
         $idUsuario = $mysqli->insert_id;
     }
 
-    // 2. Buscar Código Salida (si aplica)
-    $stmtCS = $mysqli->prepare("SELECT idCodigoSalida, CodigoSalida FROM tblCodigoSalida WHERE idProyecto = ? AND idRecompensa = ? AND Activo = 1 LIMIT 1");
-    $stmtCS->bind_param("ii", $codigo['idProyecto'], $idRecompensa);
-    $stmtCS->execute();
-    $codigoSalida = $stmtCS->get_result()->fetch_assoc();
-    $idCS = $codigoSalida ? $codigoSalida['idCodigoSalida'] : 0;
-    $valCS = $codigoSalida ? $codigoSalida['CodigoSalida'] : 'N/A';
+    // 2. Obtener Código de Salida
+    $idCS = 0;
+    $valCS = 'N/A';
+
+    if ($preAssignedCS > 0) {
+        $idCS = $preAssignedCS;
+        $stmtCS = $mysqli->prepare("SELECT CodigoSalida FROM tblCodigoSalida WHERE idCodigoSalida = ?");
+        $stmtCS->bind_param("i", $idCS);
+        $stmtCS->execute();
+        $resCS = $stmtCS->get_result()->fetch_assoc();
+        $valCS = $resCS ? $resCS['CodigoSalida'] : 'N/A';
+    } else {
+        $stmtCS = $mysqli->prepare("SELECT idCodigoSalida, CodigoSalida FROM tblCodigoSalida WHERE idProyecto = ? AND idRecompensa = ? AND Activo = 1 LIMIT 1");
+        $stmtCS->bind_param("ii", $codigo['idProyecto'], $idRecompensa);
+        $stmtCS->execute();
+        $codigoSalida = $stmtCS->get_result()->fetch_assoc();
+        if ($codigoSalida) {
+            $idCS = $codigoSalida['idCodigoSalida'];
+            $valCS = $codigoSalida['CodigoSalida'];
+        }
+    }
 
     // 3. Generar PDF
     $pdfUrl = generateCouponPDF($codigo, $valCS);
 
-    // 4. Registrar
+    // 4. Registrar en tblRegistro
     $token = bin2hex(openssl_random_pseudo_bytes(80));
     $token2 = hash('ripemd320', $token);
     
@@ -220,7 +257,7 @@ function generateCouponPDF($proyecto, $codigoSalida) {
     $templatePath = '/home/customer/www/prestaprenda.qrewards.com.mx/public_html/restAPI/qpn/' . $proyecto['nombrePdf'];
     
     if (!file_exists($templatePath)) {
-        return ""; // O manejar error
+        return "pdfs/not_found.pdf";
     }
 
     $pdf = new Fpdi();
@@ -230,12 +267,8 @@ function generateCouponPDF($proyecto, $codigoSalida) {
     $pdf->AddPage('P', array($size['width'], $size['height']));
     $pdf->useTemplate($tplIdx);
 
-    // Configurar fuente
     $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
-    
-    // Color (asumiendo formato hex o similar, aquí simplificado)
     $pdf->SetTextColor(0, 0, 0); 
-    
     $pdf->SetXY($proyecto['ejeX'] ?: 50, $proyecto['ejeY'] ?: 50);
     $pdf->Write(10, $codigoSalida);
 
@@ -253,15 +286,7 @@ function getTelefonia($mysqli) {
 }
 
 function processRecharge($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $idTelefonia = $data['idTelefonia'] ?? 0;
-    $telefono = $data['phone'] ?? '';
-    $email = $data['email'] ?? '';
-    $code = $data['code'] ?? '';
-
-    // Lógica Taecel y luego llamar a finalizeRedemption o similar
-    // (Por brevedad, se mantiene la lógica de Taecel anterior pero integrada con el registro final)
-    // ... (Omitido aquí para no exceder límites, pero se integrará en el archivo final)
-    // Para simplificar, asumiremos que processRecharge también quema el código si Taecel responde OK.
+    // Implementación pendiente de Taecel pero con la misma lógica de registro final
+    echo json_encode(['error' => 'Not implemented yet']);
 }
 ?>
