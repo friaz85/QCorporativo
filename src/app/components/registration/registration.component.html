@@ -1,73 +1,121 @@
 <div class="bg-container">
     <div class="bg-overlay"></div>
+    <div class="floating-circle circle-1"></div>
+    <div class="floating-circle circle-2"></div>
 </div>
 
 <div class="main-container">
-    <div class="premium-card" @fadeInUp>
+    <!-- Registration Card -->
+    <div class="premium-card" @fadeInUp *ngIf="!showSuccessSection">
         <div class="form-header">
             <img src="assets/logo.webp" alt="CQ Logo" style="max-height: 80px; margin-bottom: 0;">
             <h1 class="gradient-text">¡FELICIDADES, YA GANASTE!</h1>
-            <p class="text-secondary text-lg">
+            <p class="text-secondary text-sm">
                 Confirma por favor los requisitos del sistema antes de ingresar tu código de Recompensa:
             </p>
         </div>
 
-        <form (ngSubmit)="onSubmit()" #registrationForm="ngForm" @staggerFade>
+        <form (ngSubmit)="onSubmit()" #regForm="ngForm" @staggerFade>
+            <!-- Email -->
             <div class="form-group">
-                <label class="form-label" for="code">Código de recompensa</label>
-                <input pInputText id="code" name="code" [(ngModel)]="model.code" required 
-                       placeholder="Ingresa tu código" />
+                <label class="form-label">Correo Electrónico</label>
+                <span class="p-input-icon-left w-full">
+                    <i class="pi pi-envelope"></i>
+                    <input type="email" pInputText name="email" [(ngModel)]="model.email" 
+                           placeholder="tu@correo.com" class="w-full" required email>
+                </span>
             </div>
 
+            <!-- Entry Code -->
             <div class="form-group">
-                <label class="form-label" for="email">Correo electrónico</label>
-                <input pInputText id="email" name="email" [(ngModel)]="model.email" required email 
-                       placeholder="ejemplo@correo.com" />
+                <label class="form-label">Código de Entrada</label>
+                <span class="p-input-icon-left w-full">
+                    <i class="pi pi-ticket"></i>
+                    <input type="text" pInputText name="code" [(ngModel)]="model.code" 
+                           placeholder="ABC123XYZ" class="w-full" required>
+                </span>
             </div>
 
-            <div class="checkbox-group">
-                <p-checkbox name="privacy" [(ngModel)]="model.privacy" [binary]="true" inputId="privacy" required></p-checkbox>
-                <label for="privacy" class="text-sm text-secondary cursor-pointer">
-                    He leído y acepto los <a href="#" class="text-primary font-bold">términos y condiciones</a>
+            <!-- Privacy -->
+            <div class="form-group flex align-items-center gap-2">
+                <p-checkbox name="privacy" [(ngModel)]="model.privacy" [binary]="true" inputId="privacy"></p-checkbox>
+                <label for="privacy" class="text-sm cursor-pointer">
+                    Acepto el <a href="#" target="_blank">Aviso de Privacidad</a>
                 </label>
             </div>
 
-            <div class="captcha-container">
-                <p-checkbox name="captcha" [(ngModel)]="model.captcha" [binary]="true" label="No soy un robot (Captcha)"></p-checkbox>
+            <!-- Captcha (Simulated) -->
+            <div class="form-group flex align-items-center gap-2">
+                <p-checkbox name="captcha" [(ngModel)]="model.captcha" [binary]="true" inputId="captcha"></p-checkbox>
+                <label for="captcha" class="text-sm cursor-pointer">No soy un robot</label>
             </div>
 
-            <p-button label="Continuar" icon="pi pi-arrow-right" iconPos="right" type="submit" 
-                      [disabled]="!registrationForm.form.valid || !model.privacy || !model.captcha"
-                      [loading]="loading"></p-button>
+            <button pButton type="submit" label="VALIDAR CÓDIGO" 
+                    [loading]="loading" class="w-full p-button-raised p-button-danger mt-4"></button>
         </form>
+    </div>
+
+    <!-- Success Section -->
+    <div class="premium-card text-center" @fadeInUp *ngIf="showSuccessSection">
+        <div class="form-header">
+            <img src="assets/logo.webp" alt="CQ Logo" style="max-height: 80px; margin-bottom: 2rem;">
+            <i class="pi pi-check-circle text-6xl text-green-500 mb-3"></i>
+            <h1 class="gradient-text">¡REGISTRO COMPLETADO!</h1>
+            <p class="text-secondary mb-5">Ya puedes descargar tu cupón de recompensa aquí abajo.</p>
+        </div>
+        
+        <button pButton icon="pi pi-download" label="DESCARGAR CUPÓN" 
+                class="p-button-lg p-button-success w-full" (click)="downloadPdf()"></button>
+        
+        <button pButton label="VOLVER AL INICIO" 
+                class="p-button-text mt-3" (click)="showSuccessSection = false; model.code = ''"></button>
     </div>
 </div>
 
-<!-- Modal -->
-<p-dialog header="Datos de Telefonía" [(visible)]="showModal" [modal]="true" [style]="{width: '500px'}" 
-          [closable]="false" [draggable]="false" [resizable]="false">
-    <div class="p-fluid py-4">
+<!-- Modal de Telefonía (TA = 1) -->
+<p-dialog header="Requisitos de Telefonía" [(visible)]="showTelephonyModal" [modal]="true" 
+          [style]="{width: '450px'}" [draggable]="false" [resizable]="false">
+    <div class="p-fluid">
+        <p class="mb-4 text-sm text-secondary">Esta recompensa requiere una recarga de tiempo aire. Por favor ingresa tus datos:</p>
+        
         <div class="field mb-4">
-            <label for="telefonia" class="form-label">Telefonía</label>
-            <p-dropdown id="telefonia" [options]="telefoniaOptions" [(ngModel)]="telephonyModel.idTelefonia" 
+            <label class="block mb-2 font-semibold">Compañía Telefónica</label>
+            <p-dropdown [options]="telefoniaOptions" [(ngModel)]="telephonyModel.idTelefonia" 
                         optionLabel="Nombre" optionValue="idTelefonia" placeholder="Selecciona tu compañía"></p-dropdown>
         </div>
+
         <div class="field mb-4">
-            <label for="phone" class="form-label">Teléfono</label>
-            <input pInputText id="phone" [(ngModel)]="telephonyModel.phone" type="tel" placeholder="10 dígitos" maxlength="10" />
+            <label class="block mb-2 font-semibold">Número Celular (10 dígitos)</label>
+            <input type="text" pInputText [(ngModel)]="telephonyModel.phone" maxlength="10" placeholder="5512345678">
         </div>
+
         <div class="field mb-4">
-            <label for="confirmPhone" class="form-label">Comprobar teléfono</label>
-            <input pInputText id="confirmPhone" [(ngModel)]="telephonyModel.confirmPhone" type="tel" placeholder="Confirma tu número" maxlength="10" />
+            <label class="block mb-2 font-semibold">Confirmar Número Celular</label>
+            <input type="text" pInputText [(ngModel)]="telephonyModel.confirmPhone" maxlength="10" placeholder="5512345678">
         </div>
-        
-        <div *ngIf="telephonyModel.phone && telephonyModel.confirmPhone && telephonyModel.phone !== telephonyModel.confirmPhone" 
-             class="text-red-600 text-sm mb-3 font-semibold">
-            <i class="pi pi-exclamation-circle mr-1"></i> Los números de teléfono no coinciden.
-        </div>
+
+        <button pButton label="PROCESAR RECARGA" icon="pi pi-mobile" 
+                class="p-button-danger w-full mt-2" 
+                [disabled]="!isTelephonyValid()" [loading]="loadingModal"
+                (click)="confirmTelephony()"></button>
     </div>
-    <ng-template pTemplate="footer">
-        <p-button label="Confirmar" icon="pi pi-check" (click)="confirmTelephony()" 
-                  [disabled]="!isTelephonyValid()" [loading]="loadingModal"></p-button>
-    </ng-template>
+</p-dialog>
+
+<!-- Modal de Multirecompensa -->
+<p-dialog header="Elige tu Recompensa" [(visible)]="showMultiRewardModal" [modal]="true" 
+          [style]="{width: '450px'}" [draggable]="false" [resizable]="false">
+    <div class="p-fluid">
+        <p class="mb-4 text-sm text-secondary">Este código te permite elegir entre varias opciones. Selecciona la que más te guste:</p>
+        
+        <div class="field mb-4">
+            <label class="block mb-2 font-semibold">Opciones Disponibles</label>
+            <p-dropdown [options]="availableRewards" [(ngModel)]="selectedReward" 
+                        optionLabel="Nombre" placeholder="Elige un premio"></p-dropdown>
+        </div>
+
+        <button pButton label="CONFIRMAR PREMIO" icon="pi pi-star" 
+                class="p-button-danger w-full mt-2" 
+                [disabled]="!selectedReward" [loading]="loadingModal"
+                (click)="confirmRewardSelection()"></button>
+    </div>
 </p-dialog>

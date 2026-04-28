@@ -59,9 +59,15 @@ export class RegistrationComponent implements OnInit {
 
   loading = false;
   loadingModal = false;
-  showModal = false;
+  showTelephonyModal = false;
+  showMultiRewardModal = false;
+  showSuccessSection = false;
+
   telefoniaOptions: any[] = [];
+  availableRewards: any[] = [];
+  selectedReward: any = null;
   validationData: any = null;
+  pdfUrl: string = '';
 
   constructor(private dataService: DataService) {}
 
@@ -77,6 +83,11 @@ export class RegistrationComponent implements OnInit {
   }
 
   onSubmit() {
+    if (!this.model.privacy) {
+      Swal.fire('Aviso', 'Debes aceptar el aviso de privacidad', 'warning');
+      return;
+    }
+
     this.loading = true;
     this.dataService.validateCode(this.model.email, this.model.code).subscribe({
       next: (res) => {
@@ -89,36 +100,64 @@ export class RegistrationComponent implements OnInit {
             confirmButtonColor: '#e31b23'
           });
         } else {
-          this.validationData = res;
-          if (res.requiresTelephony) {
-            this.showModal = true;
-          } else {
-            Swal.fire({
-              title: '¡Éxito!',
-              text: 'Tu código ha sido validado correctamente.',
-              icon: 'success',
-              confirmButtonColor: '#e31b23'
-            });
-          }
+          this.handleResponse(res);
         }
       },
       error: (err) => {
         this.loading = false;
-        Swal.fire({
-          title: 'Error',
-          text: 'Hubo un problema al validar el código.',
-          icon: 'error',
-          confirmButtonColor: '#e31b23'
-        });
+        Swal.fire('Error', 'Hubo un problema al validar el código.', 'error');
       }
     });
   }
 
-  isTelephonyValid() {
-    return this.telephonyModel.idTelefonia && 
-           this.telephonyModel.phone && 
-           this.telephonyModel.phone.length === 10 &&
-           this.telephonyModel.phone === this.telephonyModel.confirmPhone;
+  handleResponse(res: any) {
+    this.validationData = res;
+    
+    switch (res.status) {
+      case 'ALREADY_REDEEMED':
+        this.pdfUrl = res.pdfUrl;
+        this.showSuccessSection = true;
+        Swal.fire('Atención', res.message, 'info');
+        break;
+
+      case 'MULTI_REWARD':
+        this.availableRewards = res.rewards;
+        this.showMultiRewardModal = true;
+        break;
+
+      case 'REQUIRE_TELEPHONY':
+        this.showTelephonyModal = true;
+        break;
+
+      case 'SUCCESS':
+        this.pdfUrl = res.pdfUrl;
+        this.showSuccessSection = true;
+        Swal.fire('¡Felicidades!', res.message, 'success');
+        break;
+    }
+  }
+
+  confirmRewardSelection() {
+    if (!this.selectedReward) return;
+    
+    this.loadingModal = true;
+    const data = {
+      email: this.model.email,
+      code: this.model.code,
+      idRecompensa: this.selectedReward.idRecompensa
+    };
+
+    this.dataService.selectReward(data).subscribe({
+      next: (res) => {
+        this.loadingModal = false;
+        this.showMultiRewardModal = false;
+        this.handleResponse(res);
+      },
+      error: (err) => {
+        this.loadingModal = false;
+        Swal.fire('Error', 'No se pudo procesar la selección.', 'error');
+      }
+    });
   }
 
   confirmTelephony() {
@@ -134,33 +173,32 @@ export class RegistrationComponent implements OnInit {
     this.dataService.processRecharge(data).subscribe({
       next: (res) => {
         this.loadingModal = false;
-        this.showModal = false;
+        this.showTelephonyModal = false;
         if (res.success) {
-          Swal.fire({
-            title: 'Confirmación',
-            text: res.message || 'La recarga se ha procesado exitosamente.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#e31b23'
-          });
+          this.pdfUrl = res.pdfUrl; // Si el recharge devuelve PDF
+          this.showSuccessSection = true;
+          Swal.fire('Éxito', res.message, 'success');
         } else {
-          Swal.fire({
-            title: 'Error en la recarga',
-            text: res.message || 'No se pudo procesar la recarga.',
-            icon: 'error',
-            confirmButtonColor: '#e31b23'
-          });
+          Swal.fire('Error', res.message, 'error');
         }
       },
       error: (err) => {
         this.loadingModal = false;
-        Swal.fire({
-          title: 'Error',
-          text: 'Hubo un problema al procesar la recarga.',
-          icon: 'error',
-          confirmButtonColor: '#e31b23'
-        });
+        Swal.fire('Error', 'Hubo un problema al procesar la recarga.', 'error');
       }
     });
+  }
+
+  downloadPdf() {
+    if (this.pdfUrl) {
+      window.open(this.pdfUrl, '_blank');
+    }
+  }
+
+  isTelephonyValid() {
+    return this.telephonyModel.idTelefonia && 
+           this.telephonyModel.phone && 
+           this.telephonyModel.phone.length === 10 &&
+           this.telephonyModel.phone === this.telephonyModel.confirmPhone;
   }
 }

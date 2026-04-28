@@ -21,4 +21,8 @@ export class DataService {
   processRecharge(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}?action=recharge`, data);
   }
+
+  selectReward(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}?action=selectReward`, data);
+  }
 }
