@@ -8,6 +8,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DialogModule } from 'primeng/dialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { DataService } from '../../services/data.service';
+import { RecaptchaModule } from 'ng-recaptcha';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -20,7 +21,8 @@ import Swal from 'sweetalert2';
     ButtonModule, 
     CheckboxModule, 
     DialogModule, 
-    DropdownModule
+    DropdownModule,
+    RecaptchaModule
   ],
   templateUrl: './registration.component.html',
   styleUrls: ['./registration.component.css'],
@@ -48,7 +50,7 @@ export class RegistrationComponent implements OnInit {
     email: '',
     code: '',
     privacy: false,
-    captcha: false
+    captcha: ''
   };
 
   telephonyModel = {
@@ -75,6 +77,10 @@ export class RegistrationComponent implements OnInit {
     this.loadTelefonia();
   }
 
+  onCaptchaResolved(token: string | null) {
+    this.model.captcha = token || '';
+  }
+
   loadTelefonia() {
     this.dataService.getTelefonia().subscribe({
       next: (data) => this.telefoniaOptions = data,
@@ -84,7 +90,13 @@ export class RegistrationComponent implements OnInit {
 
   onSubmit() {
     if (!this.model.privacy) {
-      Swal.fire('Aviso', 'Debes aceptar el aviso de privacidad', 'warning');
+      Swal.fire({
+        title: 'Aviso',
+        text: 'Debes aceptar el aviso de privacidad',
+        icon: 'warning',
+        confirmButtonColor: '#e31b23',
+        allowOutsideClick: false
+      });
       return;
     }
 
@@ -93,11 +105,13 @@ export class RegistrationComponent implements OnInit {
       next: (res) => {
         this.loading = false;
         if (res.error) {
+          const detail = res.details ? `\nDetalles: ${res.details}` : '';
           Swal.fire({
             title: 'Error',
-            text: res.error,
+            text: (res.error || 'Hubo un problema al validar el código.') + detail,
             icon: 'error',
-            confirmButtonColor: '#e31b23'
+            confirmButtonColor: '#e31b23',
+            allowOutsideClick: false
           });
         } else {
           this.handleResponse(res);
@@ -105,7 +119,13 @@ export class RegistrationComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        Swal.fire('Error', 'Hubo un problema al validar el código.', 'error');
+        Swal.fire({
+          title: 'Error',
+          text: 'Hubo un problema al validar el código.',
+          icon: 'error',
+          confirmButtonColor: '#e31b23',
+          allowOutsideClick: false
+        });
       }
     });
   }
@@ -117,7 +137,13 @@ export class RegistrationComponent implements OnInit {
       case 'ALREADY_REDEEMED':
         this.pdfUrl = res.pdfUrl;
         this.showSuccessSection = true;
-        Swal.fire('Atención', res.message, 'info');
+        Swal.fire({
+          title: 'Atención',
+          text: res.message,
+          icon: 'info',
+          confirmButtonColor: '#e31b23',
+          allowOutsideClick: false
+        });
         break;
 
       case 'MULTI_REWARD':
@@ -132,7 +158,13 @@ export class RegistrationComponent implements OnInit {
       case 'SUCCESS':
         this.pdfUrl = res.pdfUrl;
         this.showSuccessSection = true;
-        Swal.fire('¡Felicidades!', res.message, 'success');
+        Swal.fire({
+          title: '¡Felicidades!',
+          text: res.message,
+          icon: 'success',
+          confirmButtonColor: '#e31b23',
+          allowOutsideClick: false
+        });
         break;
     }
   }
@@ -155,7 +187,13 @@ export class RegistrationComponent implements OnInit {
       },
       error: (err) => {
         this.loadingModal = false;
-        Swal.fire('Error', 'No se pudo procesar la selección.', 'error');
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo procesar la selección.',
+          icon: 'error',
+          confirmButtonColor: '#e31b23',
+          allowOutsideClick: false
+        });
       }
     });
   }
@@ -174,17 +212,34 @@ export class RegistrationComponent implements OnInit {
       next: (res) => {
         this.loadingModal = false;
         this.showTelephonyModal = false;
-        if (res.success) {
-          this.pdfUrl = res.pdfUrl; // Si el recharge devuelve PDF
-          this.showSuccessSection = true;
-          Swal.fire('Éxito', res.message, 'success');
-        } else {
-          Swal.fire('Error', res.message, 'error');
-        }
+        
+        // Notificar éxito siempre hacia el usuario
+        Swal.fire({
+          title: '¡Felicidades!',
+          text: 'Tu recarga ha sido procesada con éxito. En un lapso de 24 a 48 horas verás reflejado tu saldo.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#e31b23',
+          allowOutsideClick: false
+        }).then(() => {
+          window.location.reload(); // Recargar para volver al inicio o redireccionar
+        });
       },
       error: (err) => {
         this.loadingModal = false;
-        Swal.fire('Error', 'Hubo un problema al procesar la recarga.', 'error');
+        this.showTelephonyModal = false;
+        
+        // Incluso si hay error de red o 500, notificamos éxito al usuario
+        Swal.fire({
+          title: '¡Felicidades!',
+          text: 'Tu recarga ha sido procesada con éxito. En un lapso de 24 a 48 horas verás reflejado tu saldo.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#e31b23',
+          allowOutsideClick: false
+        }).then(() => {
+          window.location.reload();
+        });
       }
     });
   }

@@ -1,0 +1,1 @@
+<?php $m=new mysqli('localhost','u9iut9rkejrvz','df(b2bf%ff3c','db9olsrf7dbigq'); $res=$m->query('SELECT * FROM tblTelefonia'); while($r=$res->fetch_assoc()) print_r($r); ?>

@@ -44,14 +44,15 @@
                 </label>
             </div>
 
-            <!-- Captcha (Simulated) -->
-            <div class="form-group flex align-items-center gap-2">
-                <p-checkbox name="captcha" [(ngModel)]="model.captcha" [binary]="true" inputId="captcha"></p-checkbox>
-                <label for="captcha" class="text-sm cursor-pointer">No soy un robot</label>
+            <!-- Google reCAPTCHA -->
+            <div class="form-group flex justify-content-center">
+                <re-captcha (resolved)="onCaptchaResolved($event)" 
+                            siteKey="6Leil88sAAAAAPCtYjgoWvsNF27J95svSSGXI1wY"></re-captcha>
             </div>
 
             <button pButton type="submit" label="VALIDAR CÓDIGO" 
-                    [loading]="loading" class="w-full p-button-raised p-button-danger mt-4"></button>
+                    [loading]="loading" class="w-full p-button-raised p-button-danger mt-4"
+                    [disabled]="!model.email || !model.code || !model.privacy || !model.captcha || regForm.invalid"></button>
         </form>
     </div>
 
@@ -74,28 +75,35 @@
 
 <!-- Modal de Telefonía (TA = 1) -->
 <p-dialog header="Requisitos de Telefonía" [(visible)]="showTelephonyModal" [modal]="true" 
-          [style]="{width: '450px'}" [draggable]="false" [resizable]="false">
+          [style]="{width: '450px'}" [draggable]="false" [resizable]="false" [closable]="true">
     <div class="p-fluid">
-        <p class="mb-4 text-sm text-secondary">Esta recompensa requiere una recarga de tiempo aire. Por favor ingresa tus datos:</p>
+        <p class="modal-description">Esta recompensa requiere una recarga de tiempo aire. Por favor ingresa tus datos:</p>
         
-        <div class="field mb-4">
-            <label class="block mb-2 font-semibold">Compañía Telefónica</label>
+        <div class="field-group">
+            <label class="field-label">Compañía Telefónica</label>
             <p-dropdown [options]="telefoniaOptions" [(ngModel)]="telephonyModel.idTelefonia" 
-                        optionLabel="Nombre" optionValue="idTelefonia" placeholder="Selecciona tu compañía"></p-dropdown>
+                        optionLabel="Telefonia" optionValue="idTelefonia" placeholder="Selecciona tu compañía"
+                        appendTo="body"></p-dropdown>
         </div>
 
-        <div class="field mb-4">
-            <label class="block mb-2 font-semibold">Número Celular (10 dígitos)</label>
-            <input type="text" pInputText [(ngModel)]="telephonyModel.phone" maxlength="10" placeholder="5512345678">
+        <div class="field-group">
+            <label class="field-label">Número Celular (10 dígitos)</label>
+            <span class="p-input-icon-left">
+                <i class="pi pi-phone"></i>
+                <input type="text" pInputText [(ngModel)]="telephonyModel.phone" maxlength="10" placeholder="5512345678">
+            </span>
         </div>
 
-        <div class="field mb-4">
-            <label class="block mb-2 font-semibold">Confirmar Número Celular</label>
-            <input type="text" pInputText [(ngModel)]="telephonyModel.confirmPhone" maxlength="10" placeholder="5512345678">
+        <div class="field-group">
+            <label class="field-label">Confirmar Número Celular</label>
+            <span class="p-input-icon-left">
+                <i class="pi pi-phone"></i>
+                <input type="text" pInputText [(ngModel)]="telephonyModel.confirmPhone" maxlength="10" placeholder="5512345678">
+            </span>
         </div>
 
         <button pButton label="PROCESAR RECARGA" icon="pi pi-mobile" 
-                class="p-button-danger w-full mt-2" 
+                class="p-button-danger modal-footer-btn" 
                 [disabled]="!isTelephonyValid()" [loading]="loadingModal"
                 (click)="confirmTelephony()"></button>
     </div>
@@ -103,19 +111,21 @@
 
 <!-- Modal de Multirecompensa -->
 <p-dialog header="Elige tu Recompensa" [(visible)]="showMultiRewardModal" [modal]="true" 
-          [style]="{width: '450px'}" [draggable]="false" [resizable]="false">
+          [style]="{width: '450px'}" [draggable]="false" [resizable]="false" [closable]="true">
     <div class="p-fluid">
-        <p class="mb-4 text-sm text-secondary">Este código te permite elegir entre varias opciones. Selecciona la que más te guste:</p>
+        <p class="modal-description">Este código te permite elegir entre varias opciones. Selecciona la que más te guste:</p>
         
-        <div class="field mb-4">
-            <label class="block mb-2 font-semibold">Opciones Disponibles</label>
+        <div class="field-group">
+            <label class="field-label">Opciones Disponibles</label>
             <p-dropdown [options]="availableRewards" [(ngModel)]="selectedReward" 
-                        optionLabel="Nombre" placeholder="Elige un premio"></p-dropdown>
+                        optionLabel="Recompensa" placeholder="Elige un premio"
+                        appendTo="body"></p-dropdown>
         </div>
 
         <button pButton label="CONFIRMAR PREMIO" icon="pi pi-star" 
-                class="p-button-danger w-full mt-2" 
+                class="p-button-danger modal-footer-btn" 
                 [disabled]="!selectedReward" [loading]="loadingModal"
                 (click)="confirmRewardSelection()"></button>
     </div>
 </p-dialog>
+

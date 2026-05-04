@@ -7,8 +7,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit;
 }
 
+date_default_timezone_set('America/Mexico_City');
+
 $db_config = [
-    'hostname' => 'qrewards.com.mx',
+    'hostname' => 'localhost',
     'username' => 'u9iut9rkejrvz',
     'password' => 'df(b2bf%ff3c',
     'database' => 'db9olsrf7dbigq'
@@ -21,4 +23,5 @@ if ($mysqli->connect_error) {
 }
 
 $mysqli->set_charset("utf8");
+$mysqli->query("SET time_zone = '-06:00'");
 ?>
