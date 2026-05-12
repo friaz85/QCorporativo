@@ -155,14 +155,13 @@ function processRecharge($mysqli, $idProyecto) {
         curl_close($curl);
         $res = json_decode($response, true);
 
+        // Cambiar Estatus inmediatamente tras cualquier RequestTXN — evita doble recarga
+        $transID = $res['data']['transID'] ?? '';
+        $stmtEstatus = safePrepare($mysqli, "UPDATE tblRegistro SET Estatus = 1, Activo = 0, TransID = ? WHERE idRegistro = ?");
+        $stmtEstatus->bind_param("si", $transID, $idRegistro);
+        $stmtEstatus->execute();
+
         if ($res['success']) {
-            $transID = $res['data']['transID'];
-
-            // Cambiar Estatus tras RequestTXN exitoso
-            $stmtEstatus = safePrepare($mysqli, "UPDATE tblRegistro SET Estatus = 1, Activo = 0, TransID = ? WHERE idRegistro = ?");
-            $stmtEstatus->bind_param("si", $transID, $idRegistro);
-            $stmtEstatus->execute();
-
             // Status TXN
             $curl2 = curl_init();
             curl_setopt_array($curl2, array(
