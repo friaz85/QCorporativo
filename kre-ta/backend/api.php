@@ -32,9 +32,8 @@ try {
 } catch (Throwable $e) {
     writeLog("EXCEPCION: " . $e->getMessage() . " en " . $e->getFile() . ":" . $e->getLine());
     echo json_encode([
-        'success' => true,
-        'message' => 'Tu recarga ha sido procesada con éxito. En un lapso de 24 a 48 horas verás reflejado tu saldo.',
-        'error' => 'Excepción en el servidor'
+        'success' => false,
+        'error' => 'Error en el servidor. Intenta más tarde.'
     ]);
 }
 
