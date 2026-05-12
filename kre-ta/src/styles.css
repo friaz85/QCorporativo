@@ -283,3 +283,7 @@ a:hover {
 .main-container[_ngcontent-ng-c4020893165] {
     padding: 2rem 1rem !important;
 }
+
+.premium-card[_ngcontent-ng-c4020893165] {
+    background: rgba(255, 255, 255, .5);
+}
