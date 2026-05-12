@@ -58,7 +58,7 @@ a:hover {
 }
 
 .premium-card {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, .5) !important;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     border-radius: var(--border-radius);
