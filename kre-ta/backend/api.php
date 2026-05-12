@@ -179,7 +179,11 @@ function processRecharge($mysqli, $idProyecto) {
 
             // Log con resultado de StatusTXN
             $stmtLog = safePrepare($mysqli, "INSERT INTO tblLogRecarga (idRegistro, Mensaje, Codigo, FechaRegistro, Celular, idTelefonia) VALUES (?, ?, ?, ?, ?, ?)");
-            $msg = $res2['message'] ?? 'Solicitud enviada';
+            if ($res2['success']) {
+                $msg = "Recarga Exitosa. Folio: " . ($res2['data']['Folio'] ?? '') . ". Saldo: $" . number_format((float)($res2['data']['Saldo Final'] ?? 0), 2) . "";
+            } else {
+                $msg = $res2['message'] ?? 'Error en verificación';
+            }
             $err = $res2['error'] ?? '';
             $stmtLog->bind_param("issssi", $idRegistro, $msg, $err, $date, $phone, $idTelefonia);
             $stmtLog->execute();
