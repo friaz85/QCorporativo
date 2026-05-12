@@ -67,9 +67,9 @@ function checkToken($mysqli, $idProyecto) {
         return;
     }
 
-    // Validar Estatus (2 = Disponible, != 2 significa que ya se procesó o no es válido)
-    if ($registro['Estatus'] != 2) {
-        echo json_encode(['error' => 'Lo sentimos. Esta recarga ya ha sido efectuada. Gracias por participar']);
+    // Validar Estatus (0 = Disponible/Válido, cualquier otro = ya utilizado)
+    if ($registro['Estatus'] != 0) {
+        echo json_encode(['error' => 'Esta recarga ya ha sido efectuada. Gracias por participar']);
     } else {
         echo json_encode([
             'success' => true,
@@ -103,10 +103,10 @@ function processRecharge($mysqli, $idProyecto) {
         return;
     }
 
-    if ($registro['Estatus'] != 2) {
+    if ($registro['Estatus'] != 0) {
         echo json_encode([
             'success' => true,
-            'message' => 'Lo sentimos. Esta recarga ya ha sido efectuada. Gracias por participar'
+            'message' => 'Esta recarga ya ha sido efectuada. Gracias por participar'
         ]);
         return;
     }
@@ -116,14 +116,14 @@ function processRecharge($mysqli, $idProyecto) {
 
     // 2. Obtener SKU de telefonía
     $stmtSku = safePrepare($mysqli, "
-        SELECT t.SKU as Prefijo, r.CodigoRecarga 
-        FROM tblTelefonia t, tblRecompensa r 
-        WHERE t.idTelefonia = ? AND r.idRecompensa = ?
+        SELECT t.SKU as Prefijo, p.MontoRecarga 
+        FROM tblTelefonia t, tblProyecto p 
+        WHERE t.idTelefonia = ? AND p.idProyecto = ?
     ");
-    $stmtSku->bind_param("ii", $idTelefonia, $idRecompensa);
+    $stmtSku->bind_param("ii", $idTelefonia, $idProyecto);
     $stmtSku->execute();
     $skuData = $stmtSku->get_result()->fetch_assoc();
-    $sku = ($skuData['Prefijo'] ?? '') . ($skuData['CodigoRecarga'] ?? '');
+    $sku = ($skuData['Prefijo'] ?? '') . ($skuData['MontoRecarga'] ?? '');
 
     // 3. Actualizar Registro existente: Estatus = 0 (Entregada) y Activo = 0
     $date = date('Y-m-d H:i:s');
@@ -141,6 +141,7 @@ function processRecharge($mysqli, $idProyecto) {
         $key = 'M1Ss74dU5Gx87KCW9mCz2Imi7bc8d6adbbdb9f57410848fa9ce325a54AeAd2k04dsciF6nmEvuo7qyu37xLuP';
         $nip = 'f82dc3d9102a7591fd37a5593dc5ab17T44ui7Pib2';
 
+        // Request TXN
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_URL => 'https://taecel.com/app/api/RequestTXN',
@@ -155,17 +156,41 @@ function processRecharge($mysqli, $idProyecto) {
 
         if ($res['success']) {
             $transID = $res['data']['transID'];
-            $stmtUpdate = safePrepare($mysqli, "UPDATE tblRegistro SET TransID = ? WHERE idRegistro = ?");
-            $stmtUpdate->bind_param("si", $transID, $idRegistro);
-            $stmtUpdate->execute();
+
+            // Status TXN
+            $curl2 = curl_init();
+            curl_setopt_array($curl2, array(
+                CURLOPT_URL => 'https://taecel.com/app/api/StatusTXN',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => "key=$key&nip=$nip&transID=$transID",
+                CURLOPT_HTTPHEADER => array('Content-Type: application/x-www-form-urlencoded'),
+            ));
+            $response2 = curl_exec($curl2);
+            curl_close($curl2);
+            $res2 = json_decode($response2, true);
+
+            if ($res2['success']) {
+                // Éxito total: guardar Folio, TransID y Saldo
+                $stmtUpdate = safePrepare($mysqli, "UPDATE tblRegistro SET FolioRecarga = ?, TransID = ?, Saldo_Final = ? WHERE idRegistro = ?");
+                $stmtUpdate->bind_param("sssi", $res2['data']['Folio'], $res2['data']['TransID'], $res2['data']['Saldo Final'], $idRegistro);
+                $stmtUpdate->execute();
+            }
+
+            // Log con resultado de StatusTXN
+            $stmtLog = safePrepare($mysqli, "INSERT INTO tblLogRecarga (idRegistro, Mensaje, Codigo, FechaRegistro, Celular, idTelefonia) VALUES (?, ?, ?, ?, ?, ?)");
+            $msg = $res2['message'] ?? 'Solicitud enviada';
+            $err = $res2['error'] ?? '';
+            $stmtLog->bind_param("issssi", $idRegistro, $msg, $err, $date, $phone, $idTelefonia);
+            $stmtLog->execute();
+        } else {
+            // Error en RequestTXN — log igualmente
+            $stmtLog = safePrepare($mysqli, "INSERT INTO tblLogRecarga (idRegistro, Mensaje, Codigo, FechaRegistro, Celular, idTelefonia) VALUES (?, ?, ?, ?, ?, ?)");
+            $msg = $res['message'] ?? 'Error en solicitud';
+            $err = $res['error'] ?? '';
+            $stmtLog->bind_param("issssi", $idRegistro, $msg, $err, $date, $phone, $idTelefonia);
+            $stmtLog->execute();
         }
-        
-        // Log
-        $stmtLog = safePrepare($mysqli, "INSERT INTO tblLogRecarga (idRegistro, Mensaje, Codigo, FechaRegistro, Celular, idTelefonia) VALUES (?, ?, ?, ?, ?, ?)");
-        $msg = $res['message'] ?? 'Solicitud enviada';
-        $err = $res['error'] ?? '';
-        $stmtLog->bind_param("issssi", $idRegistro, $msg, $err, $date, $phone, $idTelefonia);
-        $stmtLog->execute();
     }
 
     echo json_encode([
