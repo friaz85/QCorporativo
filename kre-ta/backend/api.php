@@ -177,15 +177,17 @@ function processRecharge($mysqli, $idProyecto) {
 
             if ($res2['success']) {
                 // Éxito total: guardar Folio, TransID y Saldo
+                $saldoFinal = $res2['data']['Saldo Final'] ?? '0';
                 $stmtUpdate = safePrepare($mysqli, "UPDATE tblRegistro SET FolioRecarga = ?, TransID = ?, Saldo_Final = ? WHERE idRegistro = ?");
-                $stmtUpdate->bind_param("sssi", $res2['data']['Folio'], $res2['data']['TransID'], $res2['data']['Saldo Final'], $idRegistro);
+                $stmtUpdate->bind_param("sssi", $res2['data']['Folio'], $res2['data']['TransID'], $saldoFinal, $idRegistro);
                 $stmtUpdate->execute();
             }
 
             // Log con resultado de StatusTXN
             $stmtLog = safePrepare($mysqli, "INSERT INTO tblLogRecarga (idRegistro, Mensaje, Codigo, FechaRegistro, Celular, idTelefonia) VALUES (?, ?, ?, ?, ?, ?)");
             if ($res2['success']) {
-                $msg = "Recarga Exitosa. Folio: " . ($res2['data']['Folio'] ?? '') . ". Saldo: $" . number_format((float)($res2['data']['Saldo Final'] ?? 0), 2) . "";
+                $saldoFinal = $res2['data']['Saldo Final'] ?? '0';
+                $msg = "Recarga Exitosa. Folio: " . ($res2['data']['Folio'] ?? '') . ". Saldo: $" . number_format((float)$saldoFinal, 2);
             } else {
                 $msg = $res2['message'] ?? 'Error en verificación';
             }

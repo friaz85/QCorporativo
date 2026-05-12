@@ -86,15 +86,16 @@ export class RegistrationComponent implements OnInit {
         this.validating = false;
         if (res.success) {
           this.tokenValidated = true;
-          this.validationData = res.data;
-          this.model.email = res.data.email || '';
+          this.validationData = res || {};
         } else {
+          this.tokenValidated = false;
           Swal.fire({
             title: 'Atención',
             text: res.error || 'Token inválido',
             icon: 'warning',
             confirmButtonColor: '#ED342E',
-            allowOutsideClick: false
+            allowOutsideClick: false,
+            allowEscapeKey: false
           }).then(() => window.location.reload());
         }
       },
@@ -147,12 +148,14 @@ export class RegistrationComponent implements OnInit {
             allowOutsideClick: false
           }).then(() => window.location.reload());
         } else {
+          this.tokenValidated = false;
           Swal.fire({
-            title: 'Error',
+            title: 'Atención',
             text: res.error || 'Error al procesar la recarga',
-            icon: 'error',
+            icon: 'warning',
             confirmButtonColor: '#ED342E',
-            allowOutsideClick: false
+            allowOutsideClick: false,
+            allowEscapeKey: false
           }).then(() => window.location.reload());
         }
       },
