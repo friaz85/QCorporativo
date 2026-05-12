@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -14,6 +14,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 
 @Component({
   selector: 'app-registration',
+  encapsulation: ViewEncapsulation.None,
   standalone: true,
   imports: [
     CommonModule, 
