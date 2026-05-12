@@ -54,8 +54,8 @@ function checkToken($mysqli, $idProyecto) {
         return;
     }
 
-    // Buscamos el registro existente por el Token y Estatus = 2 (Pendiente/Disponible como en corcholatas)
-    $stmt = safePrepare($mysqli, "SELECT idRegistro, Celular, idRecompensa, Estatus FROM tblRegistro WHERE Token = ? AND idProyecto = ?");
+    // Buscamos el registro existente por el Token y el proyecto
+    $stmt = safePrepare($mysqli, "SELECT idRegistro, Celular, Estatus FROM tblRegistro WHERE Token = ? AND idProyecto = ?");
     $stmt->bind_param("si", $token, $idProyecto);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -74,7 +74,7 @@ function checkToken($mysqli, $idProyecto) {
             'success' => true,
             'status' => 'REQUIRE_TELEPHONY',
             'idProyecto' => $idProyecto,
-            'idRecompensa' => $registro['idRecompensa'] ?: 1
+            'idRecompensa' => 1
         ]);
     }
 }

@@ -1,35 +1,71 @@
 #!/bin/bash
 
+# ─────────────────────────────────────────────
 # Configuración
+# ─────────────────────────────────────────────
 SERVER="u6-pu9mvhpmgwh1@ssh.qrewards.com.mx"
 PORT="18765"
-REMOTE_PATH="/home/customer/www/qrewards.com.mx/public_html/ta/"
+SSH_KEY="~/.ssh/id_rsa_siteground"
+REMOTE_BASE="/home/customer/www/qrewards.com.mx/public_html"
+REMOTE_PATH="$REMOTE_BASE/ta"
+BACKUP_PATH="$REMOTE_BASE/backups_ta"
 LOCAL_PROJECT_DIR="kre-ta"
+TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
 
 echo "🚀 Iniciando despliegue de /ta (kre-ta)..."
 
-# 1. Entrar al directorio del proyecto
-cd $LOCAL_PROJECT_DIR || { echo "❌ Error: No se encontró el directorio $LOCAL_PROJECT_DIR"; exit 1; }
-
-# 2. Instalar dependencias si es necesario (opcional, descomentar si se requiere)
-# npm install
-
-# 3. Compilar el proyecto con base-href /ta/
+# ─────────────────────────────────────────────
+# 1. Compilar proyecto Angular
+# ─────────────────────────────────────────────
 echo "📦 Compilando proyecto Angular..."
+cd $LOCAL_PROJECT_DIR || { echo "❌ Error: No se encontró el directorio $LOCAL_PROJECT_DIR"; exit 1; }
 npm run build -- --base-href /ta/
-
-# 4. Verificar directorio de salida
-# Angular 17+ suele compilar en dist/[nombre-proyecto]/browser
-DIST_PATH="dist/q-corporativo/browser/"
-
-if [ ! -d "$DIST_PATH" ]; then
-    # Reintento con ruta alternativa si cambia por configuración
-    DIST_PATH="dist/q-corporativo/"
+if [ $? -ne 0 ]; then
+    echo "❌ Error en la compilación. Abortando despliegue."
+    exit 1
 fi
 
-echo "📤 Sincronizando archivos al servidor ($REMOTE_PATH)..."
+DIST_PATH="dist/q-corporativo/browser/"
+if [ ! -d "$DIST_PATH" ]; then
+    DIST_PATH="dist/q-corporativo/"
+fi
+cd ..
 
-# 5. Desplegar usando rsync
-rsync -avz -e "ssh -p $PORT" --delete "$DIST_PATH" "$SERVER:$REMOTE_PATH"
+# ─────────────────────────────────────────────
+# 2. Backup remoto con timestamp
+# ─────────────────────────────────────────────
+echo "🗄️  Creando backup en servidor: backups_ta/ta_$TIMESTAMP..."
+ssh -p $PORT -i $SSH_KEY $SERVER "
+    mkdir -p $BACKUP_PATH &&
+    cp -r $REMOTE_PATH $BACKUP_PATH/ta_$TIMESTAMP &&
+    echo 'Backup creado: $BACKUP_PATH/ta_$TIMESTAMP'
+"
+if [ $? -ne 0 ]; then
+    echo "⚠️  No se pudo crear el backup. Continuando de todas formas..."
+fi
 
-echo "✅ Despliegue completado con éxito en https://qrewards.com.mx/ta"
+# ─────────────────────────────────────────────
+# 3. Limpiar carpeta remota (deploy limpio)
+# ─────────────────────────────────────────────
+echo "🧹 Limpiando carpeta remota para deploy limpio..."
+ssh -p $PORT -i $SSH_KEY $SERVER "
+    rm -rf $REMOTE_PATH &&
+    mkdir -p $REMOTE_PATH/backend &&
+    echo 'Carpeta limpia y lista.'
+"
+
+# ─────────────────────────────────────────────
+# 4. Subir frontend
+# ─────────────────────────────────────────────
+echo "📤 Subiendo frontend..."
+rsync -avz -e "ssh -p $PORT -i $SSH_KEY" "$LOCAL_PROJECT_DIR/$DIST_PATH" "$SERVER:$REMOTE_PATH/"
+
+# ─────────────────────────────────────────────
+# 5. Subir backend
+# ─────────────────────────────────────────────
+echo "📤 Subiendo backend..."
+rsync -avz -e "ssh -p $PORT -i $SSH_KEY" "$LOCAL_PROJECT_DIR/backend/" "$SERVER:$REMOTE_PATH/backend/"
+
+echo ""
+echo "✅ Despliegue completado: https://qrewards.com.mx/ta"
+echo "🗄️  Backup guardado en: $BACKUP_PATH/ta_$TIMESTAMP"
