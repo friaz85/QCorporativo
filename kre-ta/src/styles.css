@@ -1,0 +1,285 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary-color: #e31b23;
+    --primary-gradient: linear-gradient(135deg, #e31b23 0%, #b3161c 100%);
+    --bg-color: #f1f5f9;
+    --card-bg: rgba(255, 255, 255, 0.5);
+    --text-color: #1e293b;
+    --secondary-text: #475569;
+    --border-radius: 16px;
+    --shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-color);
+}
+
+a {
+    color: #e31b23;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.bg-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('assets/background.png?v=5') no-repeat center center fixed;
+    background-size: cover;
+    background-attachment: fixed;
+    z-index: -1;
+}
+
+.bg-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.main-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.premium-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border-radius: var(--border-radius);
+    padding: 2rem 2.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    max-width: 650px;
+    width: 95%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-header {
+    margin-bottom: 0px;
+    text-align: center;
+}
+
+.gradient-text {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    font-size: 2.5rem;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+    margin-top: 0px;
+}
+
+.form-group {
+    width: 100%;
+    margin-bottom: 2rem;
+    /* Espaciado entre elementos */
+}
+
+.form-label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    color: #0f172a;
+    font-size: 1rem;
+    text-align: left;
+}
+
+.p-inputtext {
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 8px !important;
+    /* Más estándar */
+    padding: 0.8rem 1.2rem !important;
+    font-size: 1.1rem !important;
+    height: 50px !important;
+    transition: all 0.3s ease !important;
+}
+
+.p-input-icon-left > .p-inputtext {
+    padding-left: 3rem !important;
+}
+
+.p-input-icon-left > i {
+    left: 1.2rem !important;
+}
+
+.p-input-icon-left {
+    display: block !important;
+    width: 100% !important;
+}
+
+.p-inputtext:focus {
+    background: #fff !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 4px rgba(227, 27, 35, 0.1) !important;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.captcha-container {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2.5rem;
+}
+
+.p-button {
+    width: 100% !important;
+    padding: 1.2rem !important;
+    border-radius: 8px !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--primary-gradient) !important;
+    color: #fff !important;
+    border: none !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.p-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(227, 27, 35, 0.4) !important;
+}
+
+.p-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Premium Modales / Dialogs */
+::ng-deep .p-dialog {
+    border-radius: 20px;
+    overflow: hidden;
+    border: none !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+::ng-deep .p-dialog .p-dialog-header {
+    background: #f8fafc !important;
+    padding: 1.5rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+::ng-deep .p-dialog .p-dialog-header .p-dialog-title {
+    font-weight: 700 !important;
+    font-size: 1.25rem !important;
+}
+
+::ng-deep .p-dialog .p-dialog-header-icons .p-dialog-header-close {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    transition: all 0.2s !important;
+    color: #ffffff !important; /* Icono blanco */
+    background: #e31b23 !important; /* Fondo rojo institucional */
+    border: none !important;
+}
+
+::ng-deep .p-dialog .p-dialog-header-icons .p-dialog-header-close:hover {
+    background: #b3161c !important; /* Rojo más oscuro al hover */
+    color: #ffffff !important;
+}
+
+::ng-deep .p-dialog .p-dialog-content {
+    padding: 2rem !important;
+    background: #ffffff !important;
+}
+
+.modal-description {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.field-group {
+    margin-bottom: 1.5rem;
+}
+
+.field-label {
+    display: block;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+::ng-deep .p-dropdown {
+    width: 100% !important;
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    transition: all 0.2s !important;
+}
+
+::ng-deep .p-dropdown .p-dropdown-label {
+    padding: 0.75rem 1rem !important;
+}
+
+::ng-deep .p-dropdown:not(.p-disabled).p-focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(227, 27, 35, 0.1) !important;
+}
+
+.modal-footer-btn {
+    margin-top: 1.5rem !important;
+    padding: 1rem !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+}
+
+
+/* Checkbox Color */
+.p-checkbox .p-checkbox-box.p-highlight {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-highlight:hover {
+    background: #b3161c !important;
+    border-color: #b3161c !important;
+}
+.phone-grid {
+    margin-bottom: 0px !important;
+}
+
+.main-container {
+    padding: 2rem 1rem;
+}
+
+.main-container[_ngcontent-ng-c4020893165] {
+    padding: 2rem 1rem !important;
+}

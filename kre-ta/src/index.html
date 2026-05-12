@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Quantum - Energía aplicada a tu negocio</title>
+  <base href="/ta/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/webp" href="assets/logo.webp">
+  
+  <!-- Anti-Cache Tags -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script>
+    // Si hay un token en la URL antes del hash, lo movemos después del hash para Angular
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('t') || urlParams.get('token');
+    if (token && !window.location.hash.includes('t=')) {
+      window.location.href = window.location.pathname + '#/?t=' + token;
+    }
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

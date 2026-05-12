@@ -1,0 +1,77 @@
+<div class="bg-container">
+    <div class="bg-overlay"></div>
+    <div class="floating-circle circle-1"></div>
+    <div class="floating-circle circle-2"></div>
+</div>
+
+<div class="main-container">
+    
+    <!-- Loading indicator if no data and no error yet -->
+    <div *ngIf="!validationData && !loading" class="text-white text-center">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <p class="mt-2">Validando acceso...</p>
+    </div>
+
+    <!-- Registration Card -->
+    <div class="premium-card" *ngIf="!showSuccessSection && validationData">
+        <div class="form-header">
+            <img src="assets/logo.webp" alt="CQ Logo" style="max-height: 80px; margin-bottom: 0;">
+            <h1 class="gradient-text">¡YA GANASTE!</h1>
+            <p class="text-secondary text-sm">
+                Ingresa los datos para tu recarga telefónica:
+            </p>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" #regForm="ngForm">
+            
+            <div class="form-group">
+                <label class="form-label">Compañía Telefónica</label>
+                <p-dropdown [options]="telefoniaOptions" [(ngModel)]="telephonyModel.idTelefonia" 
+                            name="idTelefonia" optionLabel="Telefonia" optionValue="idTelefonia" 
+                            placeholder="Selecciona tu compañía" class="w-full" required></p-dropdown>
+            </div>
+
+            <div class="phone-grid">
+                <div class="field-group">
+                    <label class="form-label">Número Celular (10 dígitos)</label>
+                    <span class="p-input-icon-left w-full">
+                        <i class="pi pi-phone"></i>
+                        <input type="text" pInputText [(ngModel)]="telephonyModel.phone" name="phone" placeholder="5512345678" maxlength="10" class="w-full">
+                    </span>
+                </div>
+                <div class="field-group">
+                    <label class="form-label">Confirmar Número Celular</label>
+                    <span class="p-input-icon-left w-full">
+                        <i class="pi pi-phone"></i>
+                        <input type="text" pInputText [(ngModel)]="telephonyModel.confirmPhone" name="confirmPhone" placeholder="5512345678" maxlength="10" class="w-full">
+                    </span>
+                </div>
+            </div>
+
+            <!-- Privacy -->
+            <div class="form-group flex align-items-center gap-2">
+                <p-checkbox name="privacy" [(ngModel)]="model.privacy" [binary]="true" inputId="privacy"></p-checkbox>
+                <label for="privacy" class="text-sm cursor-pointer">
+                    Acepto el <a href="https://qrewards.com.mx/AVISO_DE_PRIVACIDAD%202026.pdf" target="_blank">Aviso de Privacidad</a>
+                </label>
+            </div>
+
+            <button pButton type="submit" label="PROCESAR RECARGA" 
+                    [loading]="loading" class="w-full p-button-raised p-button-danger mt-4"
+                    [disabled]="!isTelephonyValid() || !model.privacy || regForm.invalid"></button>
+        </form>
+    </div>
+
+    <!-- Success Section -->
+    <div class="premium-card text-center" *ngIf="showSuccessSection">
+        <div class="form-header">
+            <img src="assets/logo.webp" alt="CQ Logo" style="max-height: 80px; margin-bottom: 2rem;">
+            <i class="pi pi-check-circle text-6xl text-green-500 mb-3"></i>
+            <h1 class="gradient-text">¡RECIBIDO!</h1>
+            <p class="text-secondary mb-5">Tu recarga está siendo procesada.</p>
+        </div>
+        
+        <button pButton label="VOLVER AL INICIO" 
+                class="p-button-text mt-3" (click)="showSuccessSection = false;"></button>
+    </div>
+</div>
