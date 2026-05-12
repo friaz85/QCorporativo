@@ -28,7 +28,7 @@
                 <label class="form-label">Compañía Telefónica</label>
                 <p-dropdown [options]="telefoniaOptions" [(ngModel)]="telephonyModel.idTelefonia" 
                             name="idTelefonia" optionLabel="Telefonia" optionValue="idTelefonia" 
-                            placeholder="Selecciona tu compañía" class="w-full" required></p-dropdown>
+                            placeholder="Selecciona tu compañía" styleClass="w-full" [style]="{'width':'100%'}" required></p-dropdown>
             </div>
 
             <div class="phone-grid">
