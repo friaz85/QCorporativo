@@ -127,8 +127,9 @@ function processRecharge($mysqli, $idProyecto) {
 
     // 3. Actualizar Registro existente: Estatus = 0 (Entregada) y Activo = 0
     $date = date('Y-m-d H:i:s');
-    
-    $stmtUpdateReg = safePrepare($mysqli, "UPDATE tblRegistro SET Celular = ?, idTelefonia = ?, FechaRegistro = ?, Estatus = 0, Activo = 0 WHERE idRegistro = ?");
+
+    // Solo actualizamos teléfono — el Estatus cambia después de RequestTXN exitoso
+    $stmtUpdateReg = safePrepare($mysqli, "UPDATE tblRegistro SET Celular = ?, idTelefonia = ?, FechaRegistro = ? WHERE idRegistro = ?");
     $stmtUpdateReg->bind_param("sisi", $phone, $idTelefonia, $date, $idRegistro);
     $stmtUpdateReg->execute();
 
@@ -156,6 +157,11 @@ function processRecharge($mysqli, $idProyecto) {
 
         if ($res['success']) {
             $transID = $res['data']['transID'];
+
+            // Cambiar Estatus tras RequestTXN exitoso
+            $stmtEstatus = safePrepare($mysqli, "UPDATE tblRegistro SET Estatus = 1, Activo = 0, TransID = ? WHERE idRegistro = ?");
+            $stmtEstatus->bind_param("si", $transID, $idRegistro);
+            $stmtEstatus->execute();
 
             // Status TXN
             $curl2 = curl_init();
