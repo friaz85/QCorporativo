@@ -1,0 +1,34 @@
+<div class="bg-container">
+    <div class="bg-overlay"></div>
+    <div class="floating-circle circle-1"></div>
+    <div class="floating-circle circle-2"></div>
+</div>
+
+<div class="main-container">
+    <div class="premium-card text-center" @fadeInUp>
+        <div class="form-header">
+            <img src="assets/logo.webp" alt="CQ Logo" style="max-height: 80px; margin-bottom: 1rem;">
+            <h1 class="gradient-text">TÉRMINOS Y CONDICIONES</h1>
+            <p class="text-secondary mb-5">
+                Por favor selecciona la marca de tu recompensa para consultar sus Términos y Condiciones vigentes:
+            </p>
+        </div>
+
+        <div class="options-container">
+            <button pButton label="Términos y Condiciones Suavel" 
+                    icon="pi pi-file-pdf"
+                    class="p-button-lg p-button-danger w-full mb-3 option-btn suavel-btn" 
+                    (click)="openPdf('suavel')"></button>
+
+            <button pButton label="Términos y Condiciones Kleenex" 
+                    icon="pi pi-file-pdf"
+                    class="p-button-lg p-button-danger w-full mb-3 option-btn kleenex-btn" 
+                    (click)="openPdf('kleenex')"></button>
+        </div>
+
+        <button pButton label="VOLVER AL INICIO" 
+                icon="pi pi-arrow-left"
+                class="p-button-text mt-3" 
+                routerLink="/"></button>
+    </div>
+</div>

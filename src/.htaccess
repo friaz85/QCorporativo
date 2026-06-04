@@ -6,3 +6,13 @@ RewriteRule ^ - [L]
 
 # If any other extension is requested and it is not a directory, go to index.html
 RewriteRule ^ /corporativo/index.html [L]
+
+# Disable caching for HTML files to prevent stale content delivery
+<FilesMatch "\.(html|htm)$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "Jan 01 1970 00:00:00 GMT"
+    </IfModule>
+</FilesMatch>
+

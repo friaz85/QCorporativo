@@ -1,1 +1,20 @@
-<router-outlet></router-outlet>
+<div class="app-layout">
+  <div class="content-wrap">
+    <router-outlet></router-outlet>
+  </div>
+  <footer class="site-footer" *ngIf="showFooter">
+    <div class="footer-content">
+      <div class="footer-row-1">
+        <p class="footer-text font-bold">2026 Todos los derechos reservados Quantum TM HMM Rewards S de RL de CV.</p>
+        <p class="footer-text">
+          Informes en la República Mexicana: <span class="font-bold">55 5249 3752</span> | <a href="mailto:atencionaclientes&#64;quantummx.com">atencionaclientes&#64;quantummx.com</a>
+        </p>
+      </div>
+      <div class="footer-row-2">
+        <p class="footer-text footer-links">
+          <a routerLink="/terminos" class="terms-link">Términos y Condiciones</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+</div>

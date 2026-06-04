@@ -36,5 +36,10 @@ export const routes: Routes = [
       }
     ]
   },
+  {
+    path: 'terminos',
+    loadComponent: () => import('./components/terminos/terminos.component').then(m => m.TerminosComponent)
+  },
   { path: '**', redirectTo: '' }
 ];
+
