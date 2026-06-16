@@ -80,7 +80,7 @@ import Swal from 'sweetalert2';
           </div>
         </div>
 
-        <p-fileUpload name="file" url="backend/admin_api.php?action=upload_codes" 
+        <p-fileUpload name="file" [url]="'backend/admin_api.php?action=upload_codes&type=' + uploadType" 
                       [auto]="true" accept=".csv" (onUpload)="onUploadSuccess($event)"
                       [maxFileSize]="1000000" label="Seleccionar CSV" chooseLabel="Subir Archivo CSV"
                       class="w-full">

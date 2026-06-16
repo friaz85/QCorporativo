@@ -146,16 +146,46 @@ export class RewardsComponent implements OnInit {
   }
 
   saveReward() {
-    this.rewardDialog = false;
-    Swal.fire('Guardado', 'Recompensa actualizada con éxito.', 'success');
+    // Convertir boolean TA a 1/0 para la base de datos
+    const rewardPayload = {
+      ...this.reward,
+      TA: this.reward.TA ? 1 : 0
+    };
+
+    this.http.post('backend/admin_api.php?action=save_reward', rewardPayload).subscribe({
+      next: (res: any) => {
+        this.rewardDialog = false;
+        this.loadRewards();
+        Swal.fire('Guardado', 'Recompensa guardada con éxito.', 'success');
+      },
+      error: (err) => {
+        Swal.fire('Error', 'No se pudo guardar la recompensa.', 'error');
+      }
+    });
   }
 
   deleteReward(reward: any) {
     Swal.fire({
       title: '¿Eliminar recompensa?',
+      text: `¿Estás seguro de que deseas eliminar la recompensa "${reward.Nombre}"? Esto también eliminará sus asociaciones en proyectos.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#e31b23'
+      confirmButtonColor: '#e31b23',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.http.get(`backend/admin_api.php?action=delete_reward&id=${reward.idRecompensa}`).subscribe({
+          next: () => {
+            this.loadRewards();
+            Swal.fire('Eliminado', 'La recompensa ha sido borrada.', 'success');
+          },
+          error: (err) => {
+            Swal.fire('Error', 'No se pudo eliminar la recompensa.', 'error');
+          }
+        });
+      }
     });
   }
 }

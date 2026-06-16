@@ -1,36 +1,74 @@
 <?php
 require_once 'config.php';
 
+header('Content-Type: application/json');
+error_reporting(0);
+ini_set('display_errors', 0);
+
 $action = $_GET['action'] ?? '';
 
-switch ($action) {
-    case 'login':
-        adminLogin($mysqli);
-        break;
-    case 'dashboard_stats':
-        getDashboardStats($mysqli);
-        break;
-    case 'get_projects':
-        getProjects($mysqli);
-        break;
-    case 'get_rewards':
-        getRewards($mysqli);
-        break;
-    case 'get_users':
-        getUsers($mysqli);
-        break;
-    case 'get_codes':
-        getCodes($mysqli);
-        break;
-    case 'download_layout':
-        downloadLayout();
-        break;
-    case 'upload_codes':
-        uploadCodes($mysqli);
-        break;
-    default:
-        echo json_encode(['error' => 'Action not found']);
-        break;
+try {
+    switch ($action) {
+        case 'login':
+            adminLogin($mysqli);
+            break;
+        case 'dashboard_stats':
+            getDashboardStats($mysqli);
+            break;
+        case 'get_projects':
+            getProjects($mysqli);
+            break;
+        case 'save_project':
+            saveProject($mysqli);
+            break;
+        case 'delete_project':
+            deleteProject($mysqli);
+            break;
+        case 'get_rewards':
+            getRewards($mysqli);
+            break;
+        case 'save_reward':
+            saveReward($mysqli);
+            break;
+        case 'delete_reward':
+            deleteReward($mysqli);
+            break;
+        case 'get_project_rewards':
+            getProjectRewards($mysqli);
+            break;
+        case 'save_project_rewards':
+            saveProjectRewards($mysqli);
+            break;
+        case 'get_users':
+            getUsers($mysqli);
+            break;
+        case 'get_codes':
+            getCodes($mysqli);
+            break;
+        case 'download_layout':
+            downloadLayout();
+            break;
+        case 'upload_codes':
+            uploadCodes($mysqli);
+            break;
+        default:
+            echo json_encode(['error' => 'Action not found']);
+            break;
+    }
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Error en el servidor',
+        'details' => $e->getMessage()
+    ]);
+}
+
+function safePrepare($mysqli, $sql) {
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) {
+        throw new Exception("Error en SQL: " . $mysqli->error . " | Query: " . trim($sql));
+    }
+    return $stmt;
 }
 
 function adminLogin($mysqli) {
@@ -68,11 +106,214 @@ function getProjects($mysqli) {
     echo json_encode($data);
 }
 
+function saveProject($mysqli) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = isset($data['idProyecto']) ? (int)$data['idProyecto'] : 0;
+
+    $fields = [
+        'Proyecto' => $data['Proyecto'] ?? '',
+        'multiRecompensa' => (int)($data['multiRecompensa'] ?? 0),
+        'nombrePdf' => $data['nombrePdf'] ?? null,
+        'ejeX' => $data['ejeX'] ?? null,
+        'ejeY' => $data['ejeY'] ?? null,
+        'ejeX2' => $data['ejeX2'] ?? null,
+        'ejeY2' => $data['ejeY2'] ?? null,
+        'ejeX3' => $data['ejeX3'] ?? null,
+        'ejeY3' => $data['ejeY3'] ?? null,
+        'ejeX4' => $data['ejeX4'] ?? null,
+        'ejeY4' => $data['ejeY4'] ?? null,
+        'ejeXMonto' => $data['ejeXMonto'] ?? null,
+        'ejeYMonto' => $data['ejeYMonto'] ?? null,
+        'montoVariable' => $data['montoVariable'] ?? '0',
+        'fuenteTexto' => $data['fuenteTexto'] ?? null,
+        'colorTexto' => $data['colorTexto'] ?? null,
+        'fuenteTextoMonto' => $data['fuenteTextoMonto'] ?? null,
+        'colorTextoMonto' => $data['colorTextoMonto'] ?? null,
+        'MontoRecarga' => $data['MontoRecarga'] ?? null,
+        'numeroPaginas' => isset($data['numeroPaginas']) ? (int)$data['numeroPaginas'] : 1,
+        'numeroCodigos' => isset($data['numeroCodigos']) ? (int)$data['numeroCodigos'] : 1,
+        'numeroParticipaciones' => isset($data['numeroParticipaciones']) ? (int)$data['numeroParticipaciones'] : 1,
+        'FechaInicio' => !empty($data['FechaInicio']) ? $data['FechaInicio'] : null,
+        'FechaFin' => !empty($data['FechaFin']) ? $data['FechaFin'] : null,
+        'Activo' => (int)($data['Activo'] ?? 1)
+    ];
+
+    if ($id > 0) {
+        // Update
+        $sql = "UPDATE tblProyecto SET 
+                Proyecto = ?, multiRecompensa = ?, nombrePdf = ?, 
+                ejeX = ?, ejeY = ?, ejeX2 = ?, ejeY2 = ?, ejeX3 = ?, ejeY3 = ?, ejeX4 = ?, ejeY4 = ?, 
+                ejeXMonto = ?, ejeYMonto = ?, montoVariable = ?, fuenteTexto = ?, colorTexto = ?, 
+                fuenteTextoMonto = ?, colorTextoMonto = ?, MontoRecarga = ?, numeroPaginas = ?, 
+                numeroCodigos = ?, numeroParticipaciones = ?, FechaInicio = ?, FechaFin = ?, Activo = ?
+                WHERE idProyecto = ?";
+        $stmt = safePrepare($mysqli, $sql);
+        $stmt->bind_param(
+            "sisssssssssssssssssiiissii",
+            $fields['Proyecto'], $fields['multiRecompensa'], $fields['nombrePdf'],
+            $fields['ejeX'], $fields['ejeY'], $fields['ejeX2'], $fields['ejeY2'], $fields['ejeX3'], $fields['ejeY3'], $fields['ejeX4'], $fields['ejeY4'],
+            $fields['ejeXMonto'], $fields['ejeYMonto'], $fields['montoVariable'], $fields['fuenteTexto'], $fields['colorTexto'],
+            $fields['fuenteTextoMonto'], $fields['colorTextoMonto'], $fields['MontoRecarga'], $fields['numeroPaginas'],
+            $fields['numeroCodigos'], $fields['numeroParticipaciones'], $fields['FechaInicio'], $fields['FechaFin'], $fields['Activo'],
+            $id
+        );
+        $stmt->execute();
+        echo json_encode(['success' => true, 'idProyecto' => $id]);
+    } else {
+        // Insert
+        $sql = "INSERT INTO tblProyecto (
+                    Proyecto, multiRecompensa, nombrePdf, 
+                    ejeX, ejeY, ejeX2, ejeY2, ejeX3, ejeY3, ejeX4, ejeY4, 
+                    ejeXMonto, ejeYMonto, montoVariable, fuenteTexto, colorTexto, 
+                    fuenteTextoMonto, colorTextoMonto, MontoRecarga, numeroPaginas, 
+                    numeroCodigos, numeroParticipaciones, FechaInicio, FechaFin, Activo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = safePrepare($mysqli, $sql);
+        $stmt->bind_param(
+            "sisssssssssssssssssiiissi",
+            $fields['Proyecto'], $fields['multiRecompensa'], $fields['nombrePdf'],
+            $fields['ejeX'], $fields['ejeY'], $fields['ejeX2'], $fields['ejeY2'], $fields['ejeX3'], $fields['ejeY3'], $fields['ejeX4'], $fields['ejeY4'],
+            $fields['ejeXMonto'], $fields['ejeYMonto'], $fields['montoVariable'], $fields['fuenteTexto'], $fields['colorTexto'],
+            $fields['fuenteTextoMonto'], $fields['colorTextoMonto'], $fields['MontoRecarga'], $fields['numeroPaginas'],
+            $fields['numeroCodigos'], $fields['numeroParticipaciones'], $fields['FechaInicio'], $fields['FechaFin'], $fields['Activo']
+        );
+        $stmt->execute();
+        echo json_encode(['success' => true, 'idProyecto' => $mysqli->insert_id]);
+    }
+}
+
+function deleteProject($mysqli) {
+    $id = (int)($_GET['id'] ?? 0);
+    if ($id <= 0) throw new Exception("ID inválido");
+
+    // Opcional: Eliminar sus relaciones
+    $mysqli->query("DELETE FROM tblRecompensaProyecto WHERE idProyecto = $id");
+
+    $stmt = safePrepare($mysqli, "DELETE FROM tblProyecto WHERE idProyecto = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    echo json_encode(['success' => true]);
+}
+
 function getRewards($mysqli) {
-    $res = $mysqli->query("SELECT * FROM tblRecompensa ORDER BY idRecompensa DESC");
+    $res = $mysqli->query("SELECT idRecompensa, Recompensa as Nombre, Monto, TA, CodigoRecarga, Mensaje, Activo FROM tblRecompensa ORDER BY idRecompensa DESC");
     $data = [];
     while($row = $res->fetch_assoc()) $data[] = $row;
     echo json_encode($data);
+}
+
+function saveReward($mysqli) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = isset($data['idRecompensa']) ? (int)$data['idRecompensa'] : 0;
+
+    $fields = [
+        'Nombre' => $data['Nombre'] ?? '',
+        'Monto' => $data['Monto'] ?? '0.00',
+        'TA' => (int)($data['TA'] ?? 0),
+        'CodigoRecarga' => $data['CodigoRecarga'] ?? null,
+        'Mensaje' => $data['Mensaje'] ?? '',
+        'Activo' => (int)($data['Activo'] ?? 1)
+    ];
+
+    if ($id > 0) {
+        $stmt = safePrepare($mysqli, "UPDATE tblRecompensa SET Recompensa = ?, Monto = ?, TA = ?, CodigoRecarga = ?, Mensaje = ?, Activo = ? WHERE idRecompensa = ?");
+        $stmt->bind_param("ssissii", $fields['Nombre'], $fields['Monto'], $fields['TA'], $fields['CodigoRecarga'], $fields['Mensaje'], $fields['Activo'], $id);
+        $stmt->execute();
+        echo json_encode(['success' => true, 'idRecompensa' => $id]);
+    } else {
+        $stmt = safePrepare($mysqli, "INSERT INTO tblRecompensa (Recompensa, Monto, TA, CodigoRecarga, Mensaje, Activo) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssissi", $fields['Nombre'], $fields['Monto'], $fields['TA'], $fields['CodigoRecarga'], $fields['Mensaje'], $fields['Activo']);
+        $stmt->execute();
+        echo json_encode(['success' => true, 'idRecompensa' => $mysqli->insert_id]);
+    }
+}
+
+function deleteReward($mysqli) {
+    $id = (int)($_GET['id'] ?? 0);
+    if ($id <= 0) throw new Exception("ID inválido");
+
+    $mysqli->query("DELETE FROM tblRecompensaProyecto WHERE idRecompensa = $id");
+
+    $stmt = safePrepare($mysqli, "DELETE FROM tblRecompensa WHERE idRecompensa = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    echo json_encode(['success' => true]);
+}
+
+function getProjectRewards($mysqli) {
+    $idProyecto = (int)($_GET['idProyecto'] ?? 0);
+    if ($idProyecto <= 0) throw new Exception("Proyecto ID requerido");
+
+    $stmt = safePrepare($mysqli, "
+        SELECT rp.*, r.Recompensa as Nombre 
+        FROM tblRecompensaProyecto rp 
+        JOIN tblRecompensa r ON rp.idRecompensa = r.idRecompensa 
+        WHERE rp.idProyecto = ?
+    ");
+    $stmt->bind_param("i", $idProyecto);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $data = [];
+    while($row = $res->fetch_assoc()) {
+        $data[] = $row;
+    }
+    echo json_encode($data);
+}
+
+function saveProjectRewards($mysqli) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $idProyecto = (int)($data['idProyecto'] ?? 0);
+    if ($idProyecto <= 0) throw new Exception("Proyecto ID inválido");
+
+    // Iniciar transacción
+    $mysqli->begin_transaction();
+
+    // Eliminar las relaciones previas
+    $mysqli->query("DELETE FROM tblRecompensaProyecto WHERE idProyecto = $idProyecto");
+
+    $rewards = $data['rewards'] ?? [];
+    foreach ($rewards as $r) {
+        $idRecompensa = (int)$r['idRecompensa'];
+        $activo = (int)($r['Activo'] ?? 1);
+        $numCodigos = (int)($r['numeroCodigos'] ?? 1);
+        $nombrePdf = $r['nombrePdf'] ?? null;
+        $ejeX = $r['ejeX'] ?? null;
+        $ejeY = $r['ejeY'] ?? null;
+        $ejeX2 = $r['ejeX2'] ?? null;
+        $ejeY2 = $r['ejeY2'] ?? null;
+        $ejeX3 = $r['ejeX3'] ?? null;
+        $ejeY3 = $r['ejeY3'] ?? null;
+        $ejeX4 = $r['ejeX4'] ?? null;
+        $ejeY4 = $r['ejeY4'] ?? null;
+        $ejeXMonto = $r['ejeXMonto'] ?? null;
+        $ejeYMonto = $r['ejeYMonto'] ?? null;
+        $montoVariable = (int)($r['montoVariable'] ?? 0);
+        $fuenteTexto = (int)($r['fuenteTexto'] ?? 12);
+        $colorTexto = $r['colorTexto'] ?? null;
+        $colorTextoMonto = $r['colorTextoMonto'] ?? null;
+        $fuenteTextoMonto = (int)($r['fuenteTextoMonto'] ?? 12);
+        $montoRecarga = $r['MontoRecarga'] ?? null;
+        $numeroPaginas = (int)($r['numeroPaginas'] ?? 1);
+
+        $sql = "INSERT INTO tblRecompensaProyecto (
+                    idProyecto, idRecompensa, Activo, numeroCodigos, nombrePdf, 
+                    ejeX, ejeY, ejeX2, ejeY2, ejeX3, ejeY3, ejeX4, ejeY4, 
+                    ejeXMonto, ejeYMonto, montoVariable, fuenteTexto, colorTexto, 
+                    colorTextoMonto, fuenteTextoMonto, MontoRecarga, numeroPaginas
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = safePrepare($mysqli, $sql);
+        $stmt->bind_param(
+            "iiiisssssssssssisssisi",
+            $idProyecto, $idRecompensa, $activo, $numCodigos, $nombrePdf,
+            $ejeX, $ejeY, $ejeX2, $ejeY2, $ejeX3, $ejeY3, $ejeX4, $ejeY4,
+            $ejeXMonto, $ejeYMonto, $montoVariable, $fuenteTexto, $colorTexto,
+            $colorTextoMonto, $fuenteTextoMonto, $montoRecarga, $numeroPaginas
+        );
+        $stmt->execute();
+    }
+
+    $mysqli->commit();
+    echo json_encode(['success' => true]);
 }
 
 function getUsers($mysqli) {
@@ -112,7 +353,7 @@ function uploadCodes($mysqli) {
         return;
     }
 
-    $type = $_POST['type'] ?? 'entrada';
+    $type = $_POST['type'] ?? $_GET['type'] ?? 'entrada';
     $file = $_FILES['file']['tmp_name'];
     $handle = fopen($file, 'r');
     
