@@ -96,7 +96,7 @@ function validateCode($mysqli) {
     verifyRecaptcha($recaptchaToken);
 
     $stmt = safePrepare($mysqli, "
-        SELECT ce.*, p.multiRecompensa, p.nombrePdf, p.ejeX, p.ejeY, p.fuenteTexto, p.colorTexto, p.Proyecto 
+        SELECT ce.*, p.*, ce.Activo as codigoActivo
         FROM tblCodigoEntrada ce 
         JOIN tblProyecto p ON ce.idProyecto = p.idProyecto 
         WHERE ce.CodigoEntrada = ?
@@ -111,28 +111,50 @@ function validateCode($mysqli) {
         return;
     }
 
-    // Escenario: Ya utilizado
-    if ($codigo['Activo'] == 0) {
-        $stmtReg = safePrepare($mysqli, "
-            SELECT r.*, u.Correo 
+    // --- VALIDACIONES DE VIGENCIA DE PROYECTO ---
+    $today = date('Y-m-d');
+    if (!empty($codigo['FechaInicio']) && $codigo['FechaInicio'] !== '0000-00-00') {
+        if ($today < $codigo['FechaInicio']) {
+            echo json_encode(['error' => 'La promoción aún no ha iniciado.']);
+            return;
+        }
+    }
+    if (!empty($codigo['FechaFin']) && $codigo['FechaFin'] !== '0000-00-00') {
+        if ($today > $codigo['FechaFin']) {
+            echo json_encode(['error' => 'La promoción ha finalizado (vencida).']);
+            return;
+        }
+    }
+
+    // --- VALIDACIÓN DE PARTICIPACIONES POR CORREO ---
+    $limit = 0;
+    if (isset($codigo['numeroParticipaciones']) && $codigo['numeroParticipaciones'] > 0) {
+        $limit = (int)$codigo['numeroParticipaciones'];
+    } elseif (isset($codigo['numeroCodigos']) && $codigo['numeroCodigos'] > 0) {
+        $limit = (int)$codigo['numeroCodigos'];
+    }
+
+    if ($limit > 0) {
+        $stmtCount = safePrepare($mysqli, "
+            SELECT COUNT(*) as total 
             FROM tblRegistro r 
             JOIN tblUsuario u ON r.idUsuario = u.idUsuario 
-            WHERE r.idCodigoEntrada = ? AND u.Correo = ?
+            WHERE u.Correo = ? AND r.idProyecto = ? AND r.Activo = 0
         ");
-        $stmtReg->bind_param("is", $codigo['idCodigoEntrada'], $email);
-        $stmtReg->execute();
-        $registroExistente = $stmtReg->get_result()->fetch_assoc();
-
-        if ($registroExistente) {
-            echo json_encode([
-                'success' => true,
-                'status' => 'ALREADY_REDEEMED',
-                'pdfUrl' => $registroExistente['ArchivoRecompensa'],
-                'message' => 'Tu cupón ya fue generado anteriormente.'
-            ]);
-        } else {
-            echo json_encode(['error' => 'Este código ya fue utilizado por otro usuario.']);
+        $stmtCount->bind_param("si", $email, $codigo['idProyecto']);
+        $stmtCount->execute();
+        $countRes = $stmtCount->get_result()->fetch_assoc();
+        $participations = (int)($countRes['total'] ?? 0);
+        
+        if ($participations >= $limit) {
+            echo json_encode(['error' => 'Tu correo ha alcanzado el límite máximo de participaciones para esta promoción.']);
+            return;
         }
+    }
+
+    // Escenario: Ya utilizado
+    if ($codigo['codigoActivo'] == 0) {
+        echo json_encode(['error' => 'Este código de entrada ya ha sido utilizado.']);
         return;
     }
 
@@ -213,12 +235,12 @@ function selectReward($mysqli) {
     $code = $data['code'] ?? '';
     $idRecompensa = $data['idRecompensa'] ?? 0;
 
-    $stmt = safePrepare($mysqli, "SELECT ce.*, p.* FROM tblCodigoEntrada ce JOIN tblProyecto p ON ce.idProyecto = p.idProyecto WHERE ce.CodigoEntrada = ?");
+    $stmt = safePrepare($mysqli, "SELECT ce.*, p.*, ce.Activo as codigoActivo FROM tblCodigoEntrada ce JOIN tblProyecto p ON ce.idProyecto = p.idProyecto WHERE ce.CodigoEntrada = ?");
     $stmt->bind_param("s", $code);
     $stmt->execute();
     $codigo = $stmt->get_result()->fetch_assoc();
 
-    if (!$codigo || $codigo['Activo'] == 0) {
+    if (!$codigo || $codigo['codigoActivo'] == 0) {
         echo json_encode(['error' => 'Operación no válida']);
         return;
     }
@@ -274,19 +296,43 @@ function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa, $preAssigne
     if (!$isTA) {
         if ($preAssignedCS > 0) {
             $idCS = $preAssignedCS;
-            $stmtCS = safePrepare($mysqli, "SELECT CodigoSalida FROM tblCodigoSalida WHERE idCodigoSalida = ?");
+            $stmtCS = safePrepare($mysqli, "SELECT * FROM tblCodigoSalida WHERE idCodigoSalida = ?");
             $stmtCS->bind_param("i", $idCS);
             $stmtCS->execute();
             $resCS = $stmtCS->get_result()->fetch_assoc();
-            $valCS = $resCS ? $resCS['CodigoSalida'] : 'N/A';
+            $valCS = $resCS ?: 'N/A';
         } else {
-            $stmtCS = safePrepare($mysqli, "SELECT idCodigoSalida, CodigoSalida FROM tblCodigoSalida WHERE idProyecto = ? AND idRecompensa = ? AND Activo = 1 LIMIT 1");
-            $stmtCS->bind_param("ii", $codigo['idProyecto'], $idRecompensa);
+            $stmtCS = safePrepare($mysqli, "SELECT * FROM tblCodigoSalida WHERE idRecompensa = ? AND Activo = 1 LIMIT 1");
+            $stmtCS->bind_param("i", $idRecompensa);
             $stmtCS->execute();
             $codigoSalida = $stmtCS->get_result()->fetch_assoc();
             if ($codigoSalida) {
                 $idCS = $codigoSalida['idCodigoSalida'];
-                $valCS = $codigoSalida['CodigoSalida'];
+                $valCS = $codigoSalida;
+            } else {
+                $valCS = 'N/A';
+            }
+        }
+
+        // Si es multirecompensa, buscamos los campos específicos de impresión en tblRecompensaProyecto
+        if (isset($codigo['multiRecompensa']) && $codigo['multiRecompensa'] == 1) {
+            $stmtRP = safePrepare($mysqli, "
+                SELECT nombrePdf, ejeX, ejeY, fuenteTexto, colorTexto, numeroPaginas,
+                       numeroCodigos, MontoRecarga, ejeX2, ejeY2, ejeX3, ejeY3, ejeX4, ejeY4,
+                       ejeXMonto, ejeYMonto, montoVariable, colorTextoMonto, fuenteTextoMonto
+                FROM tblRecompensaProyecto 
+                WHERE idProyecto = ? AND idRecompensa = ?
+            ");
+            $stmtRP->bind_param("ii", $codigo['idProyecto'], $idRecompensa);
+            $stmtRP->execute();
+            $rpConfig = $stmtRP->get_result()->fetch_assoc();
+            if ($rpConfig) {
+                // Sobrescribir de manera dinámica cualquier campo no nulo ni vacío
+                foreach ($rpConfig as $key => $val) {
+                    if ($val !== null && $val !== '') {
+                        $codigo[$key] = $val;
+                    }
+                }
             }
         }
 
@@ -328,11 +374,31 @@ function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa, $preAssigne
     ];
 }
 
+function setPDFTextColor($pdf, $colorHex) {
+    if (empty($colorHex)) {
+        $pdf->SetTextColor(0, 0, 0);
+        return;
+    }
+    $colorHex = ltrim($colorHex, '#');
+    if (strlen($colorHex) == 6) {
+        $r = hexdec(substr($colorHex, 0, 2));
+        $g = hexdec(substr($colorHex, 2, 2));
+        $b = hexdec(substr($colorHex, 4, 2));
+        $pdf->SetTextColor($r, $g, $b);
+    } elseif (strlen($colorHex) == 3) {
+        $r = hexdec(str_repeat(substr($colorHex, 0, 1), 2));
+        $g = hexdec(str_repeat(substr($colorHex, 1, 1), 2));
+        $b = hexdec(str_repeat(substr($colorHex, 2, 1), 2));
+        $pdf->SetTextColor($r, $g, $b);
+    } else {
+        $pdf->SetTextColor(0, 0, 0);
+    }
+}
+
 function generateCouponPDF($proyecto, $codigoSalida) {
-    // Cargar librerías PDF de forma diferida (lazy load)
     $libPath = '/home/customer/www/prestaprenda.qrewards.com.mx/public_html/restAPI/application/libraries/';
     require_once($libPath . 'fpdf181/fpdf.php');
-    require_once($libPath . 'fpdi/src/autoload.php');
+    require_once($libPath . 'fpdi2/src/autoload.php');
 
     $templatePath = '/home/customer/www/prestaprenda.qrewards.com.mx/public_html/restAPI/qpn/' . $proyecto['nombrePdf'];
     
@@ -347,10 +413,69 @@ function generateCouponPDF($proyecto, $codigoSalida) {
     $pdf->AddPage('P', array($size['width'], $size['height']));
     $pdf->useTemplate($tplIdx);
 
+    // Aplicar color para los códigos
+    setPDFTextColor($pdf, $proyecto['colorTexto'] ?? '#000000');
+
+    // Determinar cuántos códigos imprimir (1 a 4)
+    $numCodigos = (int)($proyecto['numeroCodigos'] ?? 1);
+    if ($numCodigos < 1) $numCodigos = 1;
+    if ($numCodigos > 4) $numCodigos = 4;
+
+    // Código 1
     $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
-    $pdf->SetTextColor(0, 0, 0); 
     $pdf->SetXY($proyecto['ejeX'] ?: 50, $proyecto['ejeY'] ?: 50);
-    $pdf->Write(10, $codigoSalida);
+    $val = is_array($codigoSalida) ? ($codigoSalida['CodigoSalida'] ?? 'N/A') : $codigoSalida;
+    $pdf->Write(10, $val);
+
+    // Código 2
+    if ($numCodigos >= 2) {
+        $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
+        $pdf->SetXY($proyecto['ejeX2'] ?: 50, $proyecto['ejeY2'] ?: 50);
+        $val2 = is_array($codigoSalida) ? ($codigoSalida['CodigoSalida2'] ?? '') : '';
+        $pdf->Write(10, $val2);
+    }
+
+    // Código 3
+    if ($numCodigos >= 3) {
+        $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
+        $pdf->SetXY($proyecto['ejeX3'] ?: 50, $proyecto['ejeY3'] ?: 50);
+        $val3 = is_array($codigoSalida) ? ($codigoSalida['CodigoSalida3'] ?? '') : '';
+        $pdf->Write(10, $val3);
+    }
+
+    // Código 4
+    if ($numCodigos >= 4) {
+        $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
+        $pdf->SetXY($proyecto['ejeX4'] ?: 50, $proyecto['ejeY4'] ?: 50);
+        $val4 = is_array($codigoSalida) ? ($codigoSalida['CodigoSalida4'] ?? '') : '';
+        $pdf->Write(10, $val4);
+    }
+
+    // --- IMPRIMIR EL MONTO (SI ES MONTO VARIABLE = 1) ---
+    if (isset($proyecto['montoVariable']) && $proyecto['montoVariable'] == 1) {
+        $montoImprimir = '';
+        if (!empty($proyecto['MontoRecarga'])) {
+            $montoImprimir = $proyecto['MontoRecarga'];
+        } elseif (!empty($proyecto['monto'])) {
+            $montoImprimir = $proyecto['monto'];
+        }
+
+        if (!empty($montoImprimir) && !empty($proyecto['ejeXMonto']) && !empty($proyecto['ejeYMonto'])) {
+            $fontSizeMonto = $proyecto['fuenteTextoMonto'] ?: ($proyecto['fuenteTexto'] ?: 12);
+            $pdf->SetFont('Arial', 'B', $fontSizeMonto);
+            
+            // Aplicar color para el monto
+            setPDFTextColor($pdf, $proyecto['colorTextoMonto'] ?? $proyecto['colorTexto'] ?? '#000000');
+            
+            $pdf->SetXY($proyecto['ejeXMonto'], $proyecto['ejeYMonto']);
+            if (is_numeric($montoImprimir)) {
+                $montoFormateado = '$' . number_format((float)$montoImprimir, 2);
+            } else {
+                $montoFormateado = $montoImprimir;
+            }
+            $pdf->Write(10, $montoFormateado);
+        }
+    }
 
     $outputDir = '/home/customer/www/prestaprenda.qrewards.com.mx/public_html/restAPI/pdfs/';
     $fileName = 'coupon_' . time() . '_' . rand(1000, 9999) . '.pdf';
@@ -378,12 +503,12 @@ function processRecharge($mysqli) {
     $idRecompensa = $data['idRecompensa'] ?? 0;
 
     // 1. Validar código y obtener datos
-    $stmt = safePrepare($mysqli, "SELECT ce.*, p.* FROM tblCodigoEntrada ce JOIN tblProyecto p ON ce.idProyecto = p.idProyecto WHERE ce.CodigoEntrada = ?");
+    $stmt = safePrepare($mysqli, "SELECT ce.*, p.*, ce.Activo as codigoActivo FROM tblCodigoEntrada ce JOIN tblProyecto p ON ce.idProyecto = p.idProyecto WHERE ce.CodigoEntrada = ?");
     $stmt->bind_param("s", $code);
     $stmt->execute();
     $codigo = $stmt->get_result()->fetch_assoc();
 
-    if (!$codigo || $codigo['Activo'] == 0) {
+    if (!$codigo || $codigo['codigoActivo'] == 0) {
         echo json_encode(['error' => 'Este código ya ha sido procesado o no es válido.']);
         return;
     }

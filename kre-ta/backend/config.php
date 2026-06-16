@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit;
 }
 
-date_default_timezone_set('America/Mexico_City');
+date_default_timezone_set('Etc/GMT+6');
 
 $db_config = [
     'hostname' => 'localhost',
