@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -142,7 +142,10 @@ import Swal from 'sweetalert2';
 
           <!-- Ejes dinámicos -->
           <div class="card p-3 surface-50 border-1 surface-border border-round mb-4">
-            <h4 class="m-0 mb-3 text-800 border-bottom-1 surface-border pb-1">Coordenadas de Códigos (Ejes)</h4>
+            <div class="flex justify-content-between align-items-center mb-3 border-bottom-1 surface-border pb-1">
+              <h4 class="m-0 text-800">Coordenadas de Códigos (Ejes)</h4>
+              <button pButton type="button" label="Diseñador Visual de PDF" icon="pi pi-eye" class="p-button-outlined p-button-danger p-button-sm w-auto" style="padding: 0.35rem 0.75rem !important;" (click)="openVisualEditor()"></button>
+            </div>
             
             <div class="formgrid grid mb-2">
               <div class="field col">
@@ -246,7 +249,10 @@ import Swal from 'sweetalert2';
               <button pButton icon="pi pi-times" class="p-button-rounded p-button-danger p-button-text absolute top-0 right-0 m-2" 
                       style="width: 30px !important; height: 30px !important; padding: 0 !important" (click)="removeRewardRelation(i)"></button>
               
-              <h5 class="m-0 mb-3 text-red-600 font-bold">{{ rel.Nombre }}</h5>
+              <div class="flex justify-content-between align-items-center mb-3 border-bottom-1 surface-border pb-1">
+                <h5 class="m-0 text-red-600 font-bold">{{ rel.Nombre }}</h5>
+                <button pButton type="button" label="Diseño Visual de PDF" icon="pi pi-eye" class="p-button-outlined p-button-danger p-button-xs w-auto mr-5" style="padding: 0.2rem 0.5rem !important; font-size: 11px !important;" (click)="openVisualEditor(rel, i)"></button>
+              </div>
 
               <div class="formgrid grid">
                 <div class="field col-6 mb-3">
@@ -355,8 +361,165 @@ import Swal from 'sweetalert2';
         <button pButton label="Guardar Proyecto" icon="pi pi-check" class="p-button-danger" (click)="saveProject()"></button>
       </ng-template>
     </p-dialog>
+
+    <!-- Dialog Diseñador Visual PDF -->
+    <p-dialog [(visible)]="visualEditorDialog" [header]="'Diseñador Visual de PDF - ' + visualEditorTitle" [modal]="true" [style]="{width: '95vw', height: '90vh'}" [draggable]="false" [resizable]="false" styleClass="p-fluid">
+      <ng-template pTemplate="content">
+        <div class="grid h-full" style="min-height: 80vh;">
+          <!-- Panel de control izquierdo -->
+          <div class="col-3 flex flex-column gap-3 p-3 bg-gray-50 border-round">
+            <h3>Cajas del PDF</h3>
+            <p class="text-xs text-secondary">Arrastra las cajas amarillas en la vista previa del PDF para posicionar los códigos y montos.</p>
+            
+            <div class="field">
+              <label class="font-bold text-xs">Plantilla PDF</label>
+              <input type="text" pInputText [(ngModel)]="visualTarget.nombrePdf" readonly />
+            </div>
+
+            <!-- Inputs de ejes -->
+            <div class="card p-2 bg-white border-round border-1 surface-border">
+              <span class="font-bold text-xs block mb-2 text-red-600">Código 1</span>
+              <div class="formgrid grid">
+                <div class="field col">
+                  <label class="text-xs">Eje X (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX" (change)="syncVisualBoxes()" />
+                </div>
+                <div class="field col">
+                  <label class="text-xs">Eje Y (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY" (change)="syncVisualBoxes()" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showBox2()">
+              <span class="font-bold text-xs block mb-2 text-red-600">Código 2</span>
+              <div class="formgrid grid">
+                <div class="field col">
+                  <label class="text-xs">Eje X2 (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX2" (change)="syncVisualBoxes()" />
+                </div>
+                <div class="field col">
+                  <label class="text-xs">Eje Y2 (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY2" (change)="syncVisualBoxes()" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showBox3()">
+              <span class="font-bold text-xs block mb-2 text-red-600">Código 3</span>
+              <div class="formgrid grid">
+                <div class="field col">
+                  <label class="text-xs">Eje X3 (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX3" (change)="syncVisualBoxes()" />
+                </div>
+                <div class="field col">
+                  <label class="text-xs">Eje Y3 (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY3" (change)="syncVisualBoxes()" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showBox4()">
+              <span class="font-bold text-xs block mb-2 text-red-600">Código 4</span>
+              <div class="formgrid grid">
+                <div class="field col">
+                  <label class="text-xs">Eje X4 (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX4" (change)="syncVisualBoxes()" />
+                </div>
+                <div class="field col">
+                  <label class="text-xs">Eje Y4 (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY4" (change)="syncVisualBoxes()" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showMontoBox()">
+              <span class="font-bold text-xs block mb-2 text-blue-600">Monto Variable</span>
+              <div class="formgrid grid">
+                <div class="field col">
+                  <label class="text-xs">Eje X (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeXMonto" (change)="syncVisualBoxes()" />
+                </div>
+                <div class="field col">
+                  <label class="text-xs">Eje Y (mm)</label>
+                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeYMonto" (change)="syncVisualBoxes()" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel derecho de previsualización -->
+          <div class="col-9 flex flex-column align-items-center justify-content-start overflow-auto p-3 bg-white" style="position: relative;">
+            <div *ngIf="pdfLoading" class="flex flex-column align-items-center p-5">
+              <i class="pi pi-spin pi-spinner text-4xl mb-3"></i>
+              <span>Cargando plantilla PDF...</span>
+            </div>
+            
+            <div *ngIf="pdfError" class="text-center p-5 text-danger bg-red-50 border-round">
+              <i class="pi pi-exclamation-triangle text-3xl mb-2"></i>
+              <p>No se pudo cargar la plantilla PDF: <strong>{{ visualTarget.nombrePdf }}</strong></p>
+              <p class="text-xs">Asegúrate de que el archivo exista en el servidor.</p>
+            </div>
+
+            <div class="pdf-canvas-wrap relative shadow-4 border-1 surface-border" [style.visibility]="(!pdfLoading && !pdfError) ? 'visible' : 'hidden'" #pdfCanvasWrap style="background: #eee; min-width: 150px; min-height: 150px;">
+              <canvas #pdfCanvas></canvas>
+              <!-- Cajas posicionables dibujadas encima -->
+              <div *ngFor="let box of draggableBoxes" class="visual-box-overlay"
+                   [style.left.px]="box.x" [style.top.px]="box.y"
+                   [style.width.px]="box.w" [style.height.px]="box.h"
+                   (mousedown)="startDragBox($event, box)"
+                   [ngClass]="box.type">
+                <div class="box-label">{{ box.label }}</div>
+                <div class="box-coords">{{ box.mmX }}x{{ box.mmY }}mm</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+      <ng-template pTemplate="footer">
+        <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="visualEditorDialog = false"></button>
+        <button pButton label="Aplicar Coordenadas" icon="pi pi-check" class="p-button-danger w-auto" (click)="applyVisualCoordinates()"></button>
+      </ng-template>
+    </p-dialog>
   `,
   styles: [`
+    .pdf-canvas-wrap {
+      position: relative;
+      user-select: none;
+    }
+    .visual-box-overlay {
+      position: absolute;
+      border: 2px dashed #e31b23;
+      background: rgba(227, 27, 35, 0.15);
+      color: #e31b23;
+      padding: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: move;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 10;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .visual-box-overlay.monto {
+      border-color: #2196F3;
+      background: rgba(33, 150, 243, 0.15);
+      color: #2196F3;
+    }
+    .box-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .box-coords {
+      font-size: 8px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
     .badge {
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
@@ -552,10 +715,276 @@ export class ProjectsComponent implements OnInit {
             Swal.fire('Eliminado', 'El proyecto ha sido borrado.', 'success');
           },
           error: () => {
-            Swal.fire('Error', 'No se pudo eliminar el proyecto.', 'error');
+            Swal.fire('Error', 'No se pudo eliminar the proyecto.', 'error');
           }
         });
       }
     });
+  }
+
+  // --- VISUAL EDITOR STATE & METHODS ---
+  @ViewChild('pdfCanvas') pdfCanvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('pdfCanvasWrap') pdfCanvasWrapRef!: ElementRef<HTMLElement>;
+
+  pdfLoading = false;
+  pdfError = false;
+  pdfScale = 1;
+  visualTarget: any = {};
+  visualEditorDialog = false;
+  visualEditorTitle = '';
+  isEditingRelation = false;
+  editingRelationIndex: number = -1;
+  draggableBoxes: any[] = [];
+
+  // Dragging state
+  draggedBox: any = null;
+  dragStartX: number = 0;
+  dragStartY: number = 0;
+  boxStartX: number = 0;
+  boxStartY: number = 0;
+
+  showBox2() {
+    const num = this.isEditingRelation ? (this.visualTarget.numeroCodigos || 1) : (this.project.numeroCodigos || 1);
+    return num >= 2;
+  }
+  showBox3() {
+    const num = this.isEditingRelation ? (this.visualTarget.numeroCodigos || 1) : (this.project.numeroCodigos || 1);
+    return num >= 3;
+  }
+  showBox4() {
+    const num = this.isEditingRelation ? (this.visualTarget.numeroCodigos || 1) : (this.project.numeroCodigos || 1);
+    const mainNum = this.project.numeroCodigos || 1;
+    return (this.isEditingRelation ? num : mainNum) >= 4;
+  }
+  showMontoBox() {
+    return this.visualTarget.montoVariable == 1 || this.visualTarget.montoVariable === '1';
+  }
+
+  loadPdfJs(): Promise<any> {
+    return new Promise((resolve) => {
+      if ((window as any).pdfjsLib) {
+        resolve((window as any).pdfjsLib);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = () => {
+        const pdfjsLib = (window as any).pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve(pdfjsLib);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  async openVisualEditor(relation?: any, index?: number) {
+    if (relation) {
+      this.isEditingRelation = true;
+      this.editingRelationIndex = index!;
+      this.visualTarget = { ...relation };
+      this.visualEditorTitle = `Recompensa: ${relation.Nombre}`;
+    } else {
+      this.isEditingRelation = false;
+      this.visualTarget = { ...this.project };
+      this.visualEditorTitle = `Proyecto: ${this.project.Proyecto}`;
+    }
+
+    if (!this.visualTarget.nombrePdf) {
+      Swal.fire('Error', 'Por favor especifica primero el nombre de la plantilla PDF.', 'error');
+      return;
+    }
+
+    this.visualEditorDialog = true;
+    this.pdfLoading = true;
+    this.pdfError = false;
+    this.draggableBoxes = [];
+
+    try {
+      const pdfjsLib = await this.loadPdfJs();
+      // El PDF se sirve desde https://prestaprenda.qrewards.com.mx/restAPI/qpn/
+      const pdfUrl = 'https://prestaprenda.qrewards.com.mx/restAPI/qpn/' + this.visualTarget.nombrePdf;
+      
+      const doc = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
+      const page = await doc.getPage(1);
+      
+      setTimeout(async () => {
+        const canvas = this.pdfCanvasRef.nativeElement;
+        const ctx = canvas.getContext('2d')!;
+        const viewportNative = page.getViewport({ scale: 1 });
+        
+        // Scale to fit screen
+        const scale = Math.min(650 / viewportNative.width, 1.5);
+        this.pdfScale = scale;
+        
+        const viewport = page.getViewport({ scale });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        
+        this.pdfLoading = false;
+        this.syncVisualBoxes();
+      }, 300);
+
+    } catch (e) {
+      console.error(e);
+      this.pdfLoading = false;
+      this.pdfError = true;
+    }
+  }
+
+  syncVisualBoxes() {
+    const scale = this.pdfScale;
+    const toPx = (mm: number) => (mm || 50) / (25.4 / 72) * scale;
+
+    const boxes: any[] = [];
+    
+    // Box 1
+    boxes.push({
+      id: 'box1',
+      label: 'Código 1',
+      type: 'codigo',
+      w: 120,
+      h: 24,
+      x: toPx(this.visualTarget.ejeX),
+      y: toPx(this.visualTarget.ejeY),
+      mmX: this.visualTarget.ejeX || 50,
+      mmY: this.visualTarget.ejeY || 50
+    });
+
+    if (this.showBox2()) {
+      boxes.push({
+        id: 'box2',
+        label: 'Código 2',
+        type: 'codigo',
+        w: 120,
+        h: 24,
+        x: toPx(this.visualTarget.ejeX2),
+        y: toPx(this.visualTarget.ejeY2),
+        mmX: this.visualTarget.ejeX2 || 50,
+        mmY: this.visualTarget.ejeY2 || 50
+      });
+    }
+
+    if (this.showBox3()) {
+      boxes.push({
+        id: 'box3',
+        label: 'Código 3',
+        type: 'codigo',
+        w: 120,
+        h: 24,
+        x: toPx(this.visualTarget.ejeX3),
+        y: toPx(this.visualTarget.ejeY3),
+        mmX: this.visualTarget.ejeX3 || 50,
+        mmY: this.visualTarget.ejeY3 || 50
+      });
+    }
+
+    if (this.showBox4()) {
+      boxes.push({
+        id: 'box4',
+        label: 'Código 4',
+        type: 'codigo',
+        w: 120,
+        h: 24,
+        x: toPx(this.visualTarget.ejeX4),
+        y: toPx(this.visualTarget.ejeY4),
+        mmX: this.visualTarget.ejeX4 || 50,
+        mmY: this.visualTarget.ejeY4 || 50
+      });
+    }
+
+    if (this.showMontoBox()) {
+      boxes.push({
+        id: 'boxMonto',
+        label: 'Monto',
+        type: 'monto',
+        w: 100,
+        h: 24,
+        x: toPx(this.visualTarget.ejeXMonto),
+        y: toPx(this.visualTarget.ejeYMonto),
+        mmX: this.visualTarget.ejeXMonto || 50,
+        mmY: this.visualTarget.ejeYMonto || 50
+      });
+    }
+
+    this.draggableBoxes = boxes;
+  }
+
+  startDragBox(event: MouseEvent, box: any) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.draggedBox = box;
+    this.dragStartX = event.clientX;
+    this.dragStartY = event.clientY;
+    this.boxStartX = box.x;
+    this.boxStartY = box.y;
+
+    const mouseMoveHandler = (e: MouseEvent) => {
+      if (!this.draggedBox) return;
+      const dx = e.clientX - this.dragStartX;
+      const dy = e.clientY - this.dragStartY;
+      
+      // Calculate new pixel positions
+      let newX = this.boxStartX + dx;
+      let newY = this.boxStartY + dy;
+
+      // Bound check
+      const wrap = this.pdfCanvasWrapRef?.nativeElement;
+      const canvas = this.pdfCanvasRef?.nativeElement;
+      if (wrap && canvas) {
+        newX = Math.max(0, Math.min(newX, canvas.width - box.w));
+        newY = Math.max(0, Math.min(newY, canvas.height - box.h));
+      }
+
+      this.draggedBox.x = newX;
+      this.draggedBox.y = newY;
+
+      // Convert to mm
+      this.draggedBox.mmX = Math.round(newX / this.pdfScale * (25.4 / 72));
+      this.draggedBox.mmY = Math.round(newY / this.pdfScale * (25.4 / 72));
+    };
+
+    const mouseUpHandler = () => {
+      this.draggedBox = null;
+      document.removeEventListener('mousemove', mouseMoveHandler);
+      document.removeEventListener('mouseup', mouseUpHandler);
+    };
+
+    document.addEventListener('mousemove', mouseMoveHandler);
+    document.addEventListener('mouseup', mouseUpHandler);
+  }
+
+  applyVisualCoordinates() {
+    // Write back box positions to target
+    this.draggableBoxes.forEach(box => {
+      if (box.id === 'box1') {
+        this.visualTarget.ejeX = box.mmX;
+        this.visualTarget.ejeY = box.mmY;
+      } else if (box.id === 'box2') {
+        this.visualTarget.ejeX2 = box.mmX;
+        this.visualTarget.ejeY2 = box.mmY;
+      } else if (box.id === 'box3') {
+        this.visualTarget.ejeX3 = box.mmX;
+        this.visualTarget.ejeY3 = box.mmY;
+      } else if (box.id === 'box4') {
+        this.visualTarget.ejeX4 = box.mmX;
+        this.visualTarget.ejeY4 = box.mmY;
+      } else if (box.id === 'boxMonto') {
+        this.visualTarget.ejeXMonto = box.mmX;
+        this.visualTarget.ejeYMonto = box.mmY;
+      }
+    });
+
+    if (this.isEditingRelation) {
+      // Update relation in associatedRewards array
+      this.associatedRewards[this.editingRelationIndex] = { ...this.visualTarget };
+    } else {
+      // Update main project
+      this.project = { ...this.visualTarget };
+    }
+
+    this.visualEditorDialog = false;
+    Swal.fire('Coordenadas Aplicadas', 'Presiona "Guardar Proyecto" para guardar los cambios de forma definitiva.', 'info');
   }
 }

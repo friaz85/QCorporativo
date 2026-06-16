@@ -83,7 +83,7 @@ function safePrepare($mysqli, $sql) {
 }
 
 function validateCode($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $email = $data['email'] ?? '';
     $code = $data['code'] ?? '';
     $recaptchaToken = $data['captcha'] ?? '';
@@ -230,7 +230,7 @@ function validateCode($mysqli) {
 }
 
 function selectReward($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $email = $data['email'] ?? '';
     $code = $data['code'] ?? '';
     $idRecompensa = $data['idRecompensa'] ?? 0;
@@ -300,13 +300,29 @@ function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa, $preAssigne
             $stmtCS->bind_param("i", $idCS);
             $stmtCS->execute();
             $resCS = $stmtCS->get_result()->fetch_assoc();
-            $valCS = $resCS ?: 'N/A';
+            if ($resCS) {
+                for ($j = 1; $j <= 8; $j++) {
+                    $colName = "CodigoSalida" . ($j === 1 ? "" : $j);
+                    if (isset($resCS[$colName])) {
+                        $resCS[$colName] = decryptDB($resCS[$colName]);
+                    }
+                }
+                $valCS = $resCS;
+            } else {
+                $valCS = 'N/A';
+            }
         } else {
             $stmtCS = safePrepare($mysqli, "SELECT * FROM tblCodigoSalida WHERE idRecompensa = ? AND Activo = 1 LIMIT 1");
             $stmtCS->bind_param("i", $idRecompensa);
             $stmtCS->execute();
             $codigoSalida = $stmtCS->get_result()->fetch_assoc();
             if ($codigoSalida) {
+                for ($j = 1; $j <= 8; $j++) {
+                    $colName = "CodigoSalida" . ($j === 1 ? "" : $j);
+                    if (isset($codigoSalida[$colName])) {
+                        $codigoSalida[$colName] = decryptDB($codigoSalida[$colName]);
+                    }
+                }
                 $idCS = $codigoSalida['idCodigoSalida'];
                 $valCS = $codigoSalida;
             } else {
@@ -495,7 +511,7 @@ function getTelefonia($mysqli) {
 }
 
 function processRecharge($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $phone = $data['phone'] ?? '';
     $idTelefonia = $data['idTelefonia'] ?? 0;
     $code = $data['code'] ?? '';

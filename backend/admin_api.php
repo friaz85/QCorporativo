@@ -45,6 +45,15 @@ try {
         case 'get_codes':
             getCodes($mysqli);
             break;
+        case 'get_exit_codes':
+            getExitCodes($mysqli);
+            break;
+        case 'add_exit_codes':
+            addExitCodes($mysqli);
+            break;
+        case 'delete_exit_code':
+            deleteExitCode($mysqli);
+            break;
         case 'download_layout':
             downloadLayout();
             break;
@@ -72,7 +81,7 @@ function safePrepare($mysqli, $sql) {
 }
 
 function adminLogin($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $user = $data['username'] ?? '';
     $pass = $data['password'] ?? '';
 
@@ -107,7 +116,7 @@ function getProjects($mysqli) {
 }
 
 function saveProject($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $id = isset($data['idProyecto']) ? (int)$data['idProyecto'] : 0;
 
     $fields = [
@@ -203,7 +212,7 @@ function getRewards($mysqli) {
 }
 
 function saveReward($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $id = isset($data['idRecompensa']) ? (int)$data['idRecompensa'] : 0;
 
     $fields = [
@@ -261,7 +270,7 @@ function getProjectRewards($mysqli) {
 }
 
 function saveProjectRewards($mysqli) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = getDecryptedInput();
     $idProyecto = (int)($data['idProyecto'] ?? 0);
     if ($idProyecto <= 0) throw new Exception("Proyecto ID inválido");
 
@@ -366,17 +375,19 @@ function uploadCodes($mysqli) {
     while (($data = fgetcsv($handle)) !== FALSE) {
         if (count($data) < 3) continue;
         
-        $code = $data[0];
+        $code = trim($data[0]);
         $idProj = (int)$data[1];
         $idRec = (int)$data[2];
         
         if ($type === 'entrada') {
             $stmt = $mysqli->prepare("INSERT IGNORE INTO tblCodigoEntrada (Codigo, idProyecto, idRecompensa, Activo) VALUES (?, ?, ?, 1)");
+            $stmt->bind_param("sii", $code, $idProj, $idRec);
         } else {
+            $encryptedCode = encryptDB($code);
             $stmt = $mysqli->prepare("INSERT IGNORE INTO tblCodigoSalida (CodigoSalida, idProyecto, idRecompensa, Activo) VALUES (?, ?, ?, 1)");
+            $stmt->bind_param("sii", $encryptedCode, $idProj, $idRec);
         }
         
-        $stmt->bind_param("sii", $code, $idProj, $idRec);
         if ($stmt->execute() && $mysqli->affected_rows > 0) {
             $count++;
         } else {
@@ -386,5 +397,90 @@ function uploadCodes($mysqli) {
     
     fclose($handle);
     echo json_encode(['success' => true, 'imported' => $count, 'errors' => $errors]);
+}
+
+function getExitCodes($mysqli) {
+    $idRecompensa = (int)($_GET['idRecompensa'] ?? 0);
+    $idProyecto = (int)($_GET['idProyecto'] ?? 0);
+    if ($idRecompensa <= 0) throw new Exception("ID Recompensa requerido");
+
+    $sql = "SELECT * FROM tblCodigoSalida WHERE idRecompensa = ? ";
+    if ($idProyecto > 0) {
+        $sql .= " AND idProyecto = ? ";
+    }
+    $sql .= " ORDER BY idCodigoSalida DESC LIMIT 1000";
+
+    $stmt = safePrepare($mysqli, $sql);
+    if ($idProyecto > 0) {
+        $stmt->bind_param("ii", $idRecompensa, $idProyecto);
+    } else {
+        $stmt->bind_param("i", $idRecompensa);
+    }
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $data = [];
+    while ($row = $res->fetch_assoc()) {
+        for ($i = 1; $i <= 8; $i++) {
+            $colName = "CodigoSalida" . ($i === 1 ? "" : $i);
+            if (isset($row[$colName])) {
+                $row[$colName] = decryptDB($row[$colName]);
+            }
+        }
+        $data[] = $row;
+    }
+    echo json_encode($data);
+}
+
+function addExitCodes($mysqli) {
+    $data = getDecryptedInput();
+    $idRecompensa = (int)($data['idRecompensa'] ?? 0);
+    $idProyecto = (int)($data['idProyecto'] ?? 0);
+    $codes = $data['codes'] ?? []; // Array de arrays
+
+    if ($idRecompensa <= 0 || $idProyecto <= 0 || empty($codes)) {
+        throw new Exception("Parámetros requeridos inválidos");
+    }
+
+    $count = 0;
+    $errors = 0;
+
+    foreach ($codes as $row) {
+        if (empty($row)) continue;
+        
+        $vals = [];
+        for ($i = 0; $i < 8; $i++) {
+            $val = isset($row[$i]) ? trim($row[$i]) : null;
+            $vals[] = $val ? encryptDB($val) : null;
+        }
+
+        $stmt = safePrepare($mysqli, "INSERT IGNORE INTO tblCodigoSalida (
+            idProyecto, idRecompensa, CodigoSalida, CodigoSalida2, CodigoSalida3,
+            CodigoSalida4, CodigoSalida5, CodigoSalida6, CodigoSalida7, CodigoSalida8, Activo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+
+        $stmt->bind_param(
+            "iissssssss",
+            $idProyecto, $idRecompensa,
+            $vals[0], $vals[1], $vals[2], $vals[3],
+            $vals[4], $vals[5], $vals[6], $vals[7]
+        );
+
+        if ($stmt->execute() && $mysqli->affected_rows > 0) {
+            $count++;
+        } else {
+            $errors++;
+        }
+    }
+
+    echo json_encode(['success' => true, 'imported' => $count, 'errors' => $errors]);
+}
+
+function deleteExitCode($mysqli) {
+    $id = (int)($_GET['id'] ?? 0);
+    if ($id <= 0) throw new Exception("ID inválido");
+    $stmt = safePrepare($mysqli, "DELETE FROM tblCodigoSalida WHERE idCodigoSalida = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    echo json_encode(['success' => true]);
 }
 ?>
