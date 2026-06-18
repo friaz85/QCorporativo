@@ -39,6 +39,11 @@ export const cryptoInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, 
     return next(req);
   }
 
+  // Evitar encriptación/desencriptación para streaming de binarios
+  if (req.url.includes('action=get_pdf') || req.url.includes('action=download_layout')) {
+    return next(req);
+  }
+
   // Sin body (GET, DELETE) — solo marcar header para que el backend cifre la respuesta
   if (!req.body) {
     const encReq = req.clone({ setHeaders: { 'X-Encrypted': '1' } });

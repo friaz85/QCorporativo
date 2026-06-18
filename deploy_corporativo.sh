@@ -45,12 +45,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 3. Limpiar carpeta remota (deploy limpio)
+# 3. Limpiar carpeta remota (deploy limpio - preservando qpn y pdfs)
 # ─────────────────────────────────────────────
-echo "🧹 Limpiando carpeta remota para deploy limpio..."
+echo "🧹 Limpiando carpeta remota (preservando backend/qpn y backend/pdfs)..."
 ssh -p $PORT -i $SSH_KEY $SERVER "
-    rm -rf $REMOTE_PATH &&
-    mkdir -p $REMOTE_PATH/backend &&
+    mkdir -p $REMOTE_PATH/backend/qpn &&
+    mkdir -p $REMOTE_PATH/backend/pdfs &&
+    find $REMOTE_PATH -mindepth 1 ! -path '$REMOTE_PATH/backend*' -delete 2>/dev/null || true
+    find $REMOTE_PATH/backend -mindepth 1 ! -path '$REMOTE_PATH/backend/qpn*' ! -path '$REMOTE_PATH/backend/pdfs*' -delete 2>/dev/null || true
     echo 'Carpeta limpia y lista.'
 "
 

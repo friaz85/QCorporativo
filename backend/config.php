@@ -73,7 +73,8 @@ function getDecryptedInput() {
 }
 
 // Request Interception for Outgoing responses
-$isEncryptedRequest = (isset($_SERVER['HTTP_X_ENCRYPTED']) && $_SERVER['HTTP_X_ENCRYPTED'] === '1');
+$action = $_GET['action'] ?? '';
+$isEncryptedRequest = (isset($_SERVER['HTTP_X_ENCRYPTED']) && $_SERVER['HTTP_X_ENCRYPTED'] === '1' && $action !== 'get_pdf' && $action !== 'download_layout' && $action !== 'upload_reward_image');
 if ($isEncryptedRequest) {
     ob_start();
     register_shutdown_function(function() {
@@ -88,4 +89,3 @@ if ($isEncryptedRequest) {
         }
     });
 }
-?>

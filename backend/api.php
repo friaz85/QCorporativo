@@ -416,7 +416,7 @@ function generateCouponPDF($proyecto, $codigoSalida) {
     require_once($libPath . 'fpdf181/fpdf.php');
     require_once($libPath . 'fpdi2/src/autoload.php');
 
-    $templatePath = '/home/customer/www/prestaprenda.qrewards.com.mx/public_html/restAPI/qpn/' . $proyecto['nombrePdf'];
+    $templatePath = __DIR__ . '/qpn/' . $proyecto['nombrePdf'];
     
     if (!file_exists($templatePath)) {
         return "https://prestaprenda.qrewards.com.mx/restAPI/pdfs/not_found.pdf";
@@ -630,4 +630,3 @@ function processRecharge($mysqli) {
 
     echo json_encode($result);
 }
-?>

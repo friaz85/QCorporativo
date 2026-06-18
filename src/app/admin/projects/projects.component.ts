@@ -1,11 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TableModule } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { DialogModule } from 'primeng/dialog';
-import { CheckboxModule } from 'primeng/checkbox';
-import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import Swal from 'sweetalert2';
@@ -13,533 +7,564 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, DialogModule, CheckboxModule, DropdownModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   template: `
-    <div class="card shadow-2 p-4 bg-white border-round">
-      <div class="flex justify-content-between align-items-center mb-4">
-        <h2 class="m-0">Proyectos</h2>
-        <button pButton label="Nuevo Proyecto" icon="pi pi-plus" class="p-button-danger" (click)="openNew()"></button>
+    <header class="topbar">
+      <h1 class="topbar-title">Proyectos</h1>
+      <div class="topbar-breadcrumb">/ Gestión / <span>Proyectos</span></div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" (click)="openNew()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Nuevo Proyecto
+        </button>
       </div>
+    </header>
 
-      <p-table [value]="projects" [paginator]="true" [rows]="10" [responsiveLayout]="'scroll'"
-               [globalFilterFields]="['Proyecto']" #dt>
-        <ng-template pTemplate="caption">
-          <div class="flex justify-content-end">
-            <span class="p-input-icon-left">
-              <i class="pi pi-search"></i>
-              <input pInputText type="text" (input)="dt.filterGlobal($any($event.target).value, 'contains')" placeholder="Buscar proyecto..." />
-            </span>
+    <div class="page-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="search-bar" style="width: 100%; justify-content: flex-end;">
+            <div class="search-input-wrapper">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()" placeholder="Buscar proyecto..." />
+            </div>
           </div>
-        </ng-template>
-        <ng-template pTemplate="header">
-          <tr>
-            <th pSortableColumn="idProyecto">ID <p-sortIcon field="idProyecto"></p-sortIcon></th>
-            <th pSortableColumn="Proyecto">Nombre <p-sortIcon field="Proyecto"></p-sortIcon></th>
-            <th>Tipo</th>
-            <th>PDF Template</th>
-            <th>Acciones</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-project>
-          <tr>
-            <td>{{ project.idProyecto }}</td>
-            <td>{{ project.Proyecto }}</td>
-            <td>
-              <span [class]="'badge status-' + project.multiRecompensa">
-                {{ project.multiRecompensa == 1 ? 'Multi' : (project.multiRecompensa == 2 ? 'Directo' : 'Individual') }}
-              </span>
-            </td>
-            <td>{{ project.nombrePdf || 'Ninguno' }}</td>
-            <td>
-              <button pButton icon="pi pi-pencil" class="p-button-text p-button-secondary" (click)="editProject(project)"></button>
-              <button pButton icon="pi pi-trash" class="p-button-text p-button-danger" (click)="deleteProject(project)"></button>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>PDF Template</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of filteredProjects">
+                <td>{{ p.idProyecto }}</td>
+                <td class="font-bold">{{ p.Proyecto }}</td>
+                <td>
+                  <span class="badge" [style.background]="p.multiRecompensa == 1 ? '#e3f2fd' : '#f1f5f9'" [style.color]="p.multiRecompensa == 1 ? '#0d47a1' : '#475569'">
+                    {{ p.multiRecompensa == 1 ? 'Multi' : (p.multiRecompensa == 2 ? 'Directo' : 'Individual') }}
+                  </span>
+                </td>
+                <td>{{ p.nombrePdf || 'Ninguno' }}</td>
+                <td>
+                  <div style="display:flex; gap:6px;">
+                    <button class="btn btn-secondary btn-sm" (click)="editProject(p)">✏️ Editar</button>
+                    <button class="btn btn-danger btn-sm" (click)="deleteProject(p)">
+                      <svg width="14" height="14" fill="none" stroke="#fff" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="!filteredProjects.length">
+                <td colspan="5" style="text-align: center; color: var(--gray-400); padding: 30px;">
+                  No hay proyectos registrados.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <!-- Edit/New Dialog -->
-    <p-dialog [(visible)]="projectDialog" [header]="'Detalles del Proyecto'" [modal]="true" styleClass="p-fluid" [style]="{width: '750px'}" [draggable]="false" [resizable]="false">
-      <ng-template pTemplate="content">
+    <!-- ══ PROJECT EDITOR MODAL ══ -->
+    <div class="modal-overlay" *ngIf="projectDialog" (click)="hideDialog()">
+      <div class="modal" style="width:min(750px,96vw); max-height:85vh; overflow-y:auto;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">Detalles del Proyecto</span>
+          <button class="modal-close" (click)="hideDialog()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="padding: 22px;">
+          <!-- Custom Premium Tabs -->
+          <div style="display:flex; gap:10px; border-bottom:1px solid var(--gray-200); padding-bottom:12px; margin-bottom:20px;">
+            <button class="filter-tab" [class.active]="activeTab === 'general'" (click)="activeTab = 'general'">General</button>
+            <button class="filter-tab" [class.active]="activeTab === 'coords'" (click)="activeTab = 'coords'">Coordenadas PDF</button>
+            <button class="filter-tab" [class.active]="activeTab === 'montos'" (click)="activeTab = 'montos'">Montos</button>
+            <button class="filter-tab" [class.active]="activeTab === 'rewards'" (click)="activeTab = 'rewards'" *ngIf="project.multiRecompensa == 1">Asociar Recompensas</button>
+          </div>
+
+          <!-- TAB: GENERAL -->
+          <div *ngIf="activeTab === 'general'">
+            <div class="form-group">
+              <label class="form-label">Nombre del Proyecto <span class="required">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="project.Proyecto" placeholder="Ej. Campaña Navidad" />
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Tipo de Recompensa</label>
+                <select class="form-control" [(ngModel)]="project.multiRecompensa" (change)="onTypeChange()">
+                  <option [value]="0">Individual</option>
+                  <option [value]="1">Multirecompensa (El usuario elige)</option>
+                  <option [value]="2">Directo (Viene asignada en código)</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex; align-items:center; gap:8px; padding-top:24px;">
+                <input type="checkbox" id="pact" [(ngModel)]="project.Activo" [checked]="project.Activo == 1" (change)="project.Activo = project.Activo == 1 ? 0 : 1" />
+                <label for="pact" style="font-weight:600; cursor:pointer;">Proyecto Activo</label>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Fecha de Inicio</label>
+                <input type="date" class="form-control" [(ngModel)]="project.FechaInicio" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fecha de Fin</label>
+                <input type="date" class="form-control" [(ngModel)]="project.FechaFin" />
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Participaciones Máx por Correo</label>
+                <input type="number" class="form-control" [(ngModel)]="project.numeroParticipaciones" min="1" />
+              </div>
+              <div class="form-group" *ngIf="project.multiRecompensa != 1">
+                <label class="form-label">Cantidad de Códigos a Imprimir</label>
+                <input type="number" class="form-control" [(ngModel)]="project.numeroCodigos" min="1" max="4" />
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: COORDENADAS PDF -->
+          <div *ngIf="activeTab === 'coords'">
+            <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Plantilla PDF (.pdf)</label>
+                <input type="text" class="form-control" [(ngModel)]="project.nombrePdf" placeholder="plantilla_cupon.pdf" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Número de Páginas</label>
+                <input type="number" class="form-control" [(ngModel)]="project.numeroPaginas" min="1" />
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Tamaño de Fuente Texto</label>
+                <input type="number" class="form-control" [(ngModel)]="project.fuenteTexto" placeholder="12" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Color de Texto (Hex)</label>
+                <input type="text" class="form-control" [(ngModel)]="project.colorTexto" placeholder="#000000" />
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--gray-200); border-radius:10px; padding:16px; margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); padding-bottom:8px; margin-bottom:12px;">
+                <h4 style="margin:0;">Coordenadas de Códigos (Ejes)</h4>
+                <button class="btn btn-secondary btn-sm" (click)="openVisualEditor()">Diseñador Visual de PDF</button>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje X1</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeX" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje Y1</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeY" />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;" *ngIf="project.numeroCodigos >= 2 || project.multiRecompensa == 1">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje X2</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeX2" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje Y2</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeY2" />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;" *ngIf="project.numeroCodigos >= 3 || project.multiRecompensa == 1">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje X3</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeX3" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje Y3</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeY3" />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;" *ngIf="project.numeroCodigos >= 4 || project.multiRecompensa == 1">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje X4</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeX4" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje Y4</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeY4" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: MONTOS -->
+          <div *ngIf="activeTab === 'montos'">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Monto Recarga / Por Defecto</label>
+                <input type="text" class="form-control" [(ngModel)]="project.MontoRecarga" placeholder="100.00" />
+              </div>
+              <div class="form-group" style="display:flex; align-items:center; gap:8px; padding-top:24px;">
+                <input type="checkbox" id="mva" [(ngModel)]="project.montoVariable" [checked]="project.montoVariable == '1'" (change)="project.montoVariable = project.montoVariable == '1' ? '0' : '1'" />
+                <label for="mva" style="font-weight:600; cursor:pointer;">Imprimir Monto en PDF</label>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--gray-200); border-radius:10px; padding:16px;" *ngIf="project.montoVariable == '1'">
+              <h4 style="margin:0; border-bottom:1px solid var(--gray-200); padding-bottom:8px; margin-bottom:12px;">Configuración del Monto Impreso</h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje X (Monto)</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeXMonto" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Eje Y (Monto)</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.ejeYMonto" />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Fuente Monto</label>
+                  <input type="number" class="form-control" [(ngModel)]="project.fuenteTextoMonto" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:11px;">Color Monto (Hex)</label>
+                  <input type="text" class="form-control" [(ngModel)]="project.colorTextoMonto" placeholder="#000000" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: RECOMPENSAS ASOCIADAS -->
+          <div *ngIf="activeTab === 'rewards' && project.multiRecompensa == 1">
+            <div style="border:1px solid var(--gray-200); border-radius:10px; padding:16px; margin-bottom:20px; background:#f9fafb;">
+              <h4 style="margin:0; margin-bottom:12px;">Asociar Nueva Recompensa</h4>
+              <div style="display:flex; gap:10px;">
+                <select class="form-control" style="flex:1;" [(ngModel)]="selectedRewardToAdd">
+                  <option [value]="null">Selecciona una Recompensa...</option>
+                  <option *ngFor="let rew of availableRewardsOptions" [ngValue]="rew">{{ rew.Nombre }}</option>
+                </select>
+                <button class="btn btn-primary" (click)="addRewardRelation()">Agregar</button>
+              </div>
+            </div>
+
+            <h4 style="margin-bottom:12px;">Configuración por Recompensa Asociada</h4>
+            <div style="display:flex; flex-direction:column; gap:14px; max-height:22rem; overflow-y:auto; padding-right:6px;">
+              <div *ngFor="let rel of associatedRewards; let i = index" style="border:1px solid var(--gray-200); border-radius:10px; padding:16px; background:white; position:relative; box-shadow:var(--shadow);">
+                <button style="position:absolute; top:12px; right:12px; background:none; border:none; color:var(--danger); cursor:pointer; font-size:16px;" (click)="removeRewardRelation(i)">✕</button>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); padding-bottom:8px; margin-bottom:12px;">
+                  <h4 style="margin:0; color:var(--3m-red);">{{ rel.Nombre }}</h4>
+                  <button class="btn btn-secondary btn-sm" (click)="openVisualEditor(rel, i)">Diseño Visual de PDF</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+                  <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:11px;">Plantilla PDF</label>
+                    <input type="text" class="form-control" [(ngModel)]="rel.nombrePdf" />
+                  </div>
+                  <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:11px;">Páginas</label>
+                    <input type="number" class="form-control" [(ngModel)]="rel.numeroPaginas" />
+                  </div>
+                  <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:11px;">Límite Códigos</label>
+                    <input type="number" class="form-control" [(ngModel)]="rel.numeroCodigos" />
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:12px;">
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje X1</label><input type="number" class="form-control" [(ngModel)]="rel.ejeX" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje Y1</label><input type="number" class="form-control" [(ngModel)]="rel.ejeY" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje X2</label><input type="number" class="form-control" [(ngModel)]="rel.ejeX2" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje Y2</label><input type="number" class="form-control" [(ngModel)]="rel.ejeY2" /></div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:12px;">
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje X3</label><input type="number" class="form-control" [(ngModel)]="rel.ejeX3" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje Y3</label><input type="number" class="form-control" [(ngModel)]="rel.ejeY3" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje X4</label><input type="number" class="form-control" [(ngModel)]="rel.ejeX4" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Eje Y4</label><input type="number" class="form-control" [(ngModel)]="rel.ejeY4" /></div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:11px;">Monto Recarga</label><input type="text" class="form-control" [(ngModel)]="rel.MontoRecarga" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:11px;">Eje X Monto</label><input type="number" class="form-control" [(ngModel)]="rel.ejeXMonto" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:11px;">Eje Y Monto</label><input type="number" class="form-control" [(ngModel)]="rel.ejeYMonto" /></div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" id="mva-{{i}}" [(ngModel)]="rel.montoVariable" [checked]="rel.montoVariable == 1" (change)="rel.montoVariable = rel.montoVariable == 1 ? 0 : 1" />
+                  <label for="mva-{{i}}" style="font-weight:600; cursor:pointer;">Imprimir Monto</label>
+                </div>
+              </div>
+
+              <div *ngIf="associatedRewards.length === 0" style="text-align:center; padding:30px; color:var(--gray-400);">
+                No hay recompensas asociadas a este proyecto todavía.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="hideDialog()">Cancelar</button>
+          <button class="btn btn-primary" (click)="saveProject()">Guardar Proyecto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VISUAL PDF EDITOR MODAL ══ -->
+    <div class="modal-overlay" *ngIf="visualEditorDialog" (click)="visualEditorDialog = false">
+      <div class="modal" style="width:min(1100px, 98vw); height:90vh; display:grid; grid-template-rows: auto 1fr auto;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">📍 Diseñador Visual de PDF - {{ visualEditorTitle }}</span>
+          <button class="modal-close" (click)="visualEditorDialog = false">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
         
-        <!-- Premium Custom Tabs -->
-        <div class="flex gap-2 mb-4 border-bottom-1 pb-2 surface-border">
-          <button pButton type="button" label="General" class="p-button-text p-button-sm px-3 py-2" [ngClass]="{'p-button-danger font-bold': activeTab === 'general'}" (click)="activeTab = 'general'"></button>
-          <button pButton type="button" label="Coordenadas PDF" class="p-button-text p-button-sm px-3 py-2" [ngClass]="{'p-button-danger font-bold': activeTab === 'coords'}" (click)="activeTab = 'coords'"></button>
-          <button pButton type="button" label="Configuración Montos" class="p-button-text p-button-sm px-3 py-2" [ngClass]="{'p-button-danger font-bold': activeTab === 'montos'}" (click)="activeTab = 'montos'"></button>
-          <button pButton type="button" label="Asociar Recompensas" class="p-button-text p-button-sm px-3 py-2" [ngClass]="{'p-button-danger font-bold': activeTab === 'rewards'}" (click)="activeTab = 'rewards'" *ngIf="project.multiRecompensa == 1"></button>
-        </div>
+        <div class="editor-columns">
+          <!-- Left settings panel -->
+          <div class="editor-left">
+            <h4 style="margin-bottom:12px;">Posicionamiento</h4>
+            <p style="font-size:11.5px; color:var(--gray-600); margin-bottom:16px;">Arrastra las cajas en el PDF a la derecha o escribe sus posiciones en milímetros (mm).</p>
 
-        <!-- TAB: GENERAL -->
-        <div *ngIf="activeTab === 'general'" class="fade-in">
-          <div class="field mb-4">
-            <label class="font-bold text-sm">Nombre del Proyecto</label>
-            <input type="text" pInputText [(ngModel)]="project.Proyecto" required placeholder="Ej. Campaña Primavera" />
-          </div>
+            <div class="form-group">
+              <label class="form-label">Plantilla PDF</label>
+              <input type="text" class="form-control" [(ngModel)]="visualTarget.nombrePdf" readonly />
+            </div>
 
-          <div class="formgrid grid">
-            <div class="field col mb-4">
-              <label class="font-bold text-sm">Tipo de Recompensa</label>
-              <select class="p-inputtext w-full" [(ngModel)]="project.multiRecompensa" (change)="onTypeChange()">
-                <option [value]="0">Individual</option>
-                <option [value]="1">Multirecompensa (El usuario elige)</option>
-                <option [value]="2">Directo (Viene asignada en código)</option>
-              </select>
+            <!-- Fuente y Color -->
+            <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px; margin-bottom:12px; background:#f9fafb;">
+              <span style="font-weight:700; font-size:11.5px; display:block; margin-bottom:8px;">Tipografía</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:10px;">Tamaño Fuente (pt)</label>
+                  <input type="number" class="form-control" [(ngModel)]="visualTarget.fuenteTexto" (ngModelChange)="syncVisualBoxes()" min="6" max="72" placeholder="12" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-size:10px;">Color Texto</label>
+                  <input type="text" class="form-control" [(ngModel)]="visualTarget.colorTexto" placeholder="#000000" />
+                </div>
+              </div>
             </div>
-            <div class="field col mb-4 flex align-items-center gap-2 pt-4">
-              <p-checkbox [(ngModel)]="project.Activo" [binary]="true" [trueValue]="1" [falseValue]="0" inputId="projActive"></p-checkbox>
-              <label for="projActive" class="m-0 font-bold text-sm cursor-pointer">Proyecto Activo</label>
-            </div>
-          </div>
 
-          <div class="formgrid grid">
-            <div class="field col mb-4">
-              <label class="font-bold text-sm">Fecha de Inicio</label>
-              <input type="date" class="p-inputtext w-full" [(ngModel)]="project.FechaInicio" />
+            <!-- Ejes inputs -->
+            <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px; margin-bottom:12px;">
+              <span style="font-weight:700; color:var(--3m-red); font-size:11.5px; display:block; margin-bottom:8px;">Código 1</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeX" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeY" (change)="syncVisualBoxes()" /></div>
+              </div>
             </div>
-            <div class="field col mb-4">
-              <label class="font-bold text-sm">Fecha de Fin</label>
-              <input type="date" class="p-inputtext w-full" [(ngModel)]="project.FechaFin" />
-            </div>
-          </div>
 
-          <div class="formgrid grid">
-            <div class="field col mb-4">
-              <label class="font-bold text-sm">Participaciones Máx por Correo</label>
-              <input type="number" pInputText [(ngModel)]="project.numeroParticipaciones" min="1" />
+            <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px; margin-bottom:12px;" *ngIf="showBox2()">
+              <span style="font-weight:700; color:var(--3m-red); font-size:11.5px; display:block; margin-bottom:8px;">Código 2</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X2 (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeX2" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y2 (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeY2" (change)="syncVisualBoxes()" /></div>
+              </div>
             </div>
-            <div class="field col mb-4" *ngIf="project.multiRecompensa != 1">
-              <label class="font-bold text-sm">Cantidad de Códigos a Imprimir</label>
-              <input type="number" pInputText [(ngModel)]="project.numeroCodigos" min="1" max="4" />
-            </div>
-          </div>
-        </div>
 
-        <!-- TAB: COORDENADAS PDF -->
-        <div *ngIf="activeTab === 'coords'" class="fade-in">
-          <div class="formgrid grid">
-            <div class="field col mb-4">
-              <label class="font-bold text-sm">Plantilla PDF (.pdf)</label>
-              <input type="text" pInputText [(ngModel)]="project.nombrePdf" placeholder="plantilla_cupon.pdf" />
+            <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px; margin-bottom:12px;" *ngIf="showBox3()">
+              <span style="font-weight:700; color:var(--3m-red); font-size:11.5px; display:block; margin-bottom:8px;">Código 3</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X3 (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeX3" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y3 (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeY3" (change)="syncVisualBoxes()" /></div>
+              </div>
             </div>
-            <div class="field col mb-4">
-              <label class="font-bold text-sm">Número de Páginas</label>
-              <input type="number" pInputText [(ngModel)]="project.numeroPaginas" min="1" />
-            </div>
-          </div>
 
-          <div class="formgrid grid">
-            <div class="field col-6 mb-4">
-              <label class="font-bold text-sm">Tamaño de Fuente Texto</label>
-              <input type="number" pInputText [(ngModel)]="project.fuenteTexto" placeholder="12" />
+            <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px; margin-bottom:12px;" *ngIf="showBox4()">
+              <span style="font-weight:700; color:var(--3m-red); font-size:11.5px; display:block; margin-bottom:8px;">Código 4</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X4 (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeX4" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y4 (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeY4" (change)="syncVisualBoxes()" /></div>
+              </div>
             </div>
-            <div class="field col-6 mb-4">
-              <label class="font-bold text-sm">Color de Texto (Hex)</label>
-              <input type="text" pInputText [(ngModel)]="project.colorTexto" placeholder="#000000" />
+
+            <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px;" *ngIf="showMontoBox()">
+              <span style="font-weight:700; color:var(--info); font-size:11.5px; display:block; margin-bottom:8px;">Monto Variable</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeXMonto" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeYMonto" (change)="syncVisualBoxes()" /></div>
+              </div>
             </div>
           </div>
 
-          <!-- Ejes dinámicos -->
-          <div class="card p-3 surface-50 border-1 surface-border border-round mb-4">
-            <div class="flex justify-content-between align-items-center mb-3 border-bottom-1 surface-border pb-1">
-              <h4 class="m-0 text-800">Coordenadas de Códigos (Ejes)</h4>
-              <button pButton type="button" label="Diseñador Visual de PDF" icon="pi pi-eye" class="p-button-outlined p-button-danger p-button-sm w-auto" style="padding: 0.35rem 0.75rem !important;" (click)="openVisualEditor()"></button>
+          <!-- Right preview panel -->
+          <div class="editor-right">
+            <div class="editor-right-header">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Vista previa PDF — Arrastra los elementos para posicionar
             </div>
             
-            <div class="formgrid grid mb-2">
-              <div class="field col">
-                <label class="text-xs">Eje X1</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeX" />
+            <div class="pdf-scroll-area">
+              <div *ngIf="pdfLoading" style="text-align:center; padding:40px;">
+                <div class="spinner-sm" style="margin-bottom:8px;"></div>
+                <div>Cargando PDF...</div>
               </div>
-              <div class="field col">
-                <label class="text-xs">Eje Y1</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeY" />
+              <div *ngIf="pdfError" style="background:#fef2f2; color:#dc2626; border:1px solid #fca5a5; padding:20px; border-radius:10px; text-align:center;">
+                No se pudo cargar la plantilla PDF: <strong>{{ visualTarget.nombrePdf }}</strong>. Asegúrate de que exista en el servidor.
               </div>
-            </div>
 
-            <div class="formgrid grid mb-2" *ngIf="project.numeroCodigos >= 2 || project.multiRecompensa == 1">
-              <div class="field col">
-                <label class="text-xs">Eje X2</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeX2" />
-              </div>
-              <div class="field col">
-                <label class="text-xs">Eje Y2</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeY2" />
-              </div>
-            </div>
+              <div class="pdf-canvas-wrap" [style.visibility]="(!pdfLoading && !pdfError) ? 'visible' : 'hidden'" #pdfCanvasWrap>
+                <canvas #pdfCanvas></canvas>
 
-            <div class="formgrid grid mb-2" *ngIf="project.numeroCodigos >= 3 || project.multiRecompensa == 1">
-              <div class="field col">
-                <label class="text-xs">Eje X3</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeX3" />
-              </div>
-              <div class="field col">
-                <label class="text-xs">Eje Y3</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeY3" />
-              </div>
-            </div>
-
-            <div class="formgrid grid mb-2" *ngIf="project.numeroCodigos >= 4 || project.multiRecompensa == 1">
-              <div class="field col">
-                <label class="text-xs">Eje X4</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeX4" />
-              </div>
-              <div class="field col">
-                <label class="text-xs">Eje Y4</label>
-                <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="project.ejeY4" />
+                <!-- Draggable overlays inside canvas wrap -->
+                <div *ngFor="let box of draggableBoxes" class="zone-box"
+                     [style.left.px]="box.x" [style.top.px]="box.y"
+                     [style.width.px]="box.w" [style.height.px]="box.h"
+                     (mousedown)="startDragBox($event, box)"
+                     [style.border-color]="box.type === 'monto' ? '#0369a1' : '#1e1e2e'"
+                     [style.background]="box.type === 'monto' ? 'rgba(3,105,161,.08)' : 'rgba(30,30,46,.08)'">
+                  <div class="zone-label" [style.background]="box.type === 'monto' ? '#0369a1' : '#1e1e2e'">{{ box.label }}</div>
+                  <div class="zone-demo">{{ box.mmX }}x{{ box.mmY }} mm</div>
+                  <div class="zone-resize"
+                       [style.background]="box.type === 'monto' ? '#0369a1' : '#1e1e2e'"
+                       (mousedown)="startResizeBox($event, box)"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- TAB: CONFIGURACIÓN MONTOS -->
-        <div *ngIf="activeTab === 'montos'" class="fade-in">
-          <div class="formgrid grid align-items-center mb-4">
-            <div class="field col-6 mb-0">
-              <label class="font-bold text-sm">Monto Recarga / Por Defecto</label>
-              <input type="text" pInputText [(ngModel)]="project.MontoRecarga" placeholder="100.00" />
-            </div>
-            <div class="field col-6 mb-0 flex align-items-center gap-2 pt-4">
-              <p-checkbox [(ngModel)]="project.montoVariable" [binary]="true" [trueValue]="'1'" [falseValue]="'0'" inputId="variableAmount"></p-checkbox>
-              <label for="variableAmount" class="m-0 font-bold text-sm cursor-pointer">Imprimir Monto Variable en PDF</label>
-            </div>
-          </div>
-
-          <div class="card p-3 surface-50 border-1 surface-border border-round mb-4" *ngIf="project.montoVariable == '1'">
-            <h4 class="m-0 mb-3 text-800 border-bottom-1 surface-border pb-1">Configuración del Monto Impreso</h4>
-            <div class="formgrid grid mb-3">
-              <div class="field col-6">
-                <label class="text-xs">Eje X (Monto)</label>
-                <input type="number" pInputText [(ngModel)]="project.ejeXMonto" />
-              </div>
-              <div class="field col-6">
-                <label class="text-xs">Eje Y (Monto)</label>
-                <input type="number" pInputText [(ngModel)]="project.ejeYMonto" />
-              </div>
-            </div>
-
-            <div class="formgrid grid">
-              <div class="field col-6">
-                <label class="text-xs">Tamaño de Fuente Monto</label>
-                <input type="number" pInputText [(ngModel)]="project.fuenteTextoMonto" placeholder="12" />
-              </div>
-              <div class="field col-6">
-                <label class="text-xs">Color de Monto (Hex)</label>
-                <input type="text" pInputText [(ngModel)]="project.colorTextoMonto" placeholder="#000000" />
-              </div>
-            </div>
-          </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="visualEditorDialog = false">Cancelar</button>
+          <button class="btn btn-primary" (click)="applyVisualCoordinates()">Aplicar Coordenadas</button>
         </div>
-
-        <!-- TAB: RECOMPENSAS ASOCIADAS -->
-        <div *ngIf="activeTab === 'rewards' && project.multiRecompensa == 1" class="fade-in">
-          <div class="card p-3 border-1 surface-border mb-4 border-round surface-50">
-            <h4 class="m-0 mb-3 text-800">Asociar Nueva Recompensa</h4>
-            <div class="flex gap-2">
-              <p-dropdown [options]="availableRewardsOptions" [(ngModel)]="selectedRewardToAdd" 
-                          optionLabel="Nombre" placeholder="Selecciona una Recompensa" class="w-full"></p-dropdown>
-              <button pButton label="Agregar" icon="pi pi-plus" class="p-button-danger w-auto" style="width:120px !important" (click)="addRewardRelation()"></button>
-            </div>
-          </div>
-
-          <h4 class="mb-2">Configuración por Recompensa Asociada</h4>
-          <div class="accordion-container flex flex-column gap-3 pr-2" style="max-height: 25rem; overflow-y: auto;">
-            <div *ngFor="let rel of associatedRewards; let i = index" class="p-3 border-1 surface-border border-round bg-white shadow-1 relative">
-              <button pButton icon="pi pi-times" class="p-button-rounded p-button-danger p-button-text absolute top-0 right-0 m-2" 
-                      style="width: 30px !important; height: 30px !important; padding: 0 !important" (click)="removeRewardRelation(i)"></button>
-              
-              <div class="flex justify-content-between align-items-center mb-3 border-bottom-1 surface-border pb-1">
-                <h5 class="m-0 text-red-600 font-bold">{{ rel.Nombre }}</h5>
-                <button pButton type="button" label="Diseño Visual de PDF" icon="pi pi-eye" class="p-button-outlined p-button-danger p-button-xs w-auto mr-5" style="padding: 0.2rem 0.5rem !important; font-size: 11px !important;" (click)="openVisualEditor(rel, i)"></button>
-              </div>
-
-              <div class="formgrid grid">
-                <div class="field col-6 mb-3">
-                  <label class="text-xs font-bold">Plantilla PDF</label>
-                  <input type="text" pInputText class="p-inputtext-sm" [(ngModel)]="rel.nombrePdf" placeholder="cupon_personalizado.pdf" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Núm Páginas</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.numeroPaginas" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Límite Códigos</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.numeroCodigos" />
-                </div>
-              </div>
-
-              <div class="formgrid grid">
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje X1</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeX" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje Y1</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeY" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje X2</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeX2" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje Y2</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeY2" />
-                </div>
-              </div>
-
-              <div class="formgrid grid">
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje X3</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeX3" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje Y3</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeY3" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje X4</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeX4" />
-                </div>
-                <div class="field col-3 mb-3">
-                  <label class="text-xs font-bold">Eje Y4</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeY4" />
-                </div>
-              </div>
-
-              <div class="formgrid grid">
-                <div class="field col-6 mb-3">
-                  <label class="text-xs font-bold">Fuente Texto</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.fuenteTexto" />
-                </div>
-                <div class="field col-6 mb-3">
-                  <label class="text-xs font-bold">Color Texto</label>
-                  <input type="text" pInputText class="p-inputtext-sm" [(ngModel)]="rel.colorTexto" placeholder="#000000" />
-                </div>
-              </div>
-
-              <div class="formgrid grid">
-                <div class="field col-4 mb-3">
-                  <label class="text-xs font-bold">Monto Recarga</label>
-                  <input type="text" pInputText class="p-inputtext-sm" [(ngModel)]="rel.MontoRecarga" placeholder="100.00" />
-                </div>
-                <div class="field col-4 mb-3">
-                  <label class="text-xs font-bold">Eje X Monto</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeXMonto" />
-                </div>
-                <div class="field col-4 mb-3">
-                  <label class="text-xs font-bold">Eje Y Monto</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.ejeYMonto" />
-                </div>
-              </div>
-
-              <div class="formgrid grid align-items-center">
-                <div class="field col-6 mb-0 flex align-items-center gap-2 pt-2">
-                  <p-checkbox [(ngModel)]="rel.montoVariable" [binary]="true" [trueValue]="1" [falseValue]="0" inputId="variableMonto-{{i}}"></p-checkbox>
-                  <label for="variableMonto-{{i}}" class="m-0 text-xs font-bold cursor-pointer">Imprimir Monto</label>
-                </div>
-                <div class="field col-3 mb-0" *ngIf="rel.montoVariable == 1">
-                  <label class="text-xs font-bold">Fuente Monto</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="rel.fuenteTextoMonto" />
-                </div>
-                <div class="field col-3 mb-0" *ngIf="rel.montoVariable == 1">
-                  <label class="text-xs font-bold">Color Monto</label>
-                  <input type="text" pInputText class="p-inputtext-sm" [(ngModel)]="rel.colorTextoMonto" placeholder="#000000" />
-                </div>
-              </div>
-            </div>
-            
-            <div *ngIf="associatedRewards.length === 0" class="text-center p-4 text-500 surface-100 border-round">
-              No hay recompensas asociadas a este proyecto todavía.
-            </div>
-          </div>
-        </div>
-
-      </ng-template>
-      <ng-template pTemplate="footer">
-        <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
-        <button pButton label="Guardar Proyecto" icon="pi pi-check" class="p-button-danger" (click)="saveProject()"></button>
-      </ng-template>
-    </p-dialog>
-
-    <!-- Dialog Diseñador Visual PDF -->
-    <p-dialog [(visible)]="visualEditorDialog" [header]="'Diseñador Visual de PDF - ' + visualEditorTitle" [modal]="true" [style]="{width: '95vw', height: '90vh'}" [draggable]="false" [resizable]="false" styleClass="p-fluid">
-      <ng-template pTemplate="content">
-        <div class="grid h-full" style="min-height: 80vh;">
-          <!-- Panel de control izquierdo -->
-          <div class="col-3 flex flex-column gap-3 p-3 bg-gray-50 border-round">
-            <h3>Cajas del PDF</h3>
-            <p class="text-xs text-secondary">Arrastra las cajas amarillas en la vista previa del PDF para posicionar los códigos y montos.</p>
-            
-            <div class="field">
-              <label class="font-bold text-xs">Plantilla PDF</label>
-              <input type="text" pInputText [(ngModel)]="visualTarget.nombrePdf" readonly />
-            </div>
-
-            <!-- Inputs de ejes -->
-            <div class="card p-2 bg-white border-round border-1 surface-border">
-              <span class="font-bold text-xs block mb-2 text-red-600">Código 1</span>
-              <div class="formgrid grid">
-                <div class="field col">
-                  <label class="text-xs">Eje X (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX" (change)="syncVisualBoxes()" />
-                </div>
-                <div class="field col">
-                  <label class="text-xs">Eje Y (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY" (change)="syncVisualBoxes()" />
-                </div>
-              </div>
-            </div>
-
-            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showBox2()">
-              <span class="font-bold text-xs block mb-2 text-red-600">Código 2</span>
-              <div class="formgrid grid">
-                <div class="field col">
-                  <label class="text-xs">Eje X2 (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX2" (change)="syncVisualBoxes()" />
-                </div>
-                <div class="field col">
-                  <label class="text-xs">Eje Y2 (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY2" (change)="syncVisualBoxes()" />
-                </div>
-              </div>
-            </div>
-
-            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showBox3()">
-              <span class="font-bold text-xs block mb-2 text-red-600">Código 3</span>
-              <div class="formgrid grid">
-                <div class="field col">
-                  <label class="text-xs">Eje X3 (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX3" (change)="syncVisualBoxes()" />
-                </div>
-                <div class="field col">
-                  <label class="text-xs">Eje Y3 (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY3" (change)="syncVisualBoxes()" />
-                </div>
-              </div>
-            </div>
-
-            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showBox4()">
-              <span class="font-bold text-xs block mb-2 text-red-600">Código 4</span>
-              <div class="formgrid grid">
-                <div class="field col">
-                  <label class="text-xs">Eje X4 (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeX4" (change)="syncVisualBoxes()" />
-                </div>
-                <div class="field col">
-                  <label class="text-xs">Eje Y4 (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeY4" (change)="syncVisualBoxes()" />
-                </div>
-              </div>
-            </div>
-
-            <div class="card p-2 bg-white border-round border-1 surface-border" *ngIf="showMontoBox()">
-              <span class="font-bold text-xs block mb-2 text-blue-600">Monto Variable</span>
-              <div class="formgrid grid">
-                <div class="field col">
-                  <label class="text-xs">Eje X (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeXMonto" (change)="syncVisualBoxes()" />
-                </div>
-                <div class="field col">
-                  <label class="text-xs">Eje Y (mm)</label>
-                  <input type="number" pInputText class="p-inputtext-sm" [(ngModel)]="visualTarget.ejeYMonto" (change)="syncVisualBoxes()" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Panel derecho de previsualización -->
-          <div class="col-9 flex flex-column align-items-center justify-content-start overflow-auto p-3 bg-white" style="position: relative;">
-            <div *ngIf="pdfLoading" class="flex flex-column align-items-center p-5">
-              <i class="pi pi-spin pi-spinner text-4xl mb-3"></i>
-              <span>Cargando plantilla PDF...</span>
-            </div>
-            
-            <div *ngIf="pdfError" class="text-center p-5 text-danger bg-red-50 border-round">
-              <i class="pi pi-exclamation-triangle text-3xl mb-2"></i>
-              <p>No se pudo cargar la plantilla PDF: <strong>{{ visualTarget.nombrePdf }}</strong></p>
-              <p class="text-xs">Asegúrate de que el archivo exista en el servidor.</p>
-            </div>
-
-            <div class="pdf-canvas-wrap relative shadow-4 border-1 surface-border" [style.visibility]="(!pdfLoading && !pdfError) ? 'visible' : 'hidden'" #pdfCanvasWrap style="background: #eee; min-width: 150px; min-height: 150px;">
-              <canvas #pdfCanvas></canvas>
-              <!-- Cajas posicionables dibujadas encima -->
-              <div *ngFor="let box of draggableBoxes" class="visual-box-overlay"
-                   [style.left.px]="box.x" [style.top.px]="box.y"
-                   [style.width.px]="box.w" [style.height.px]="box.h"
-                   (mousedown)="startDragBox($event, box)"
-                   [ngClass]="box.type">
-                <div class="box-label">{{ box.label }}</div>
-                <div class="box-coords">{{ box.mmX }}x{{ box.mmY }}mm</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ng-template>
-      <ng-template pTemplate="footer">
-        <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="visualEditorDialog = false"></button>
-        <button pButton label="Aplicar Coordenadas" icon="pi pi-check" class="p-button-danger w-auto" (click)="applyVisualCoordinates()"></button>
-      </ng-template>
-    </p-dialog>
+      </div>
+    </div>
   `,
   styles: [`
-    .pdf-canvas-wrap {
-      position: relative;
-      user-select: none;
+    .editor-columns {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      overflow: hidden;
+      min-height: 0;
     }
-    .visual-box-overlay {
-      position: absolute;
-      border: 2px dashed #e31b23;
-      background: rgba(227, 27, 35, 0.15);
-      color: #e31b23;
-      padding: 4px;
-      font-size: 11px;
-      font-weight: bold;
-      cursor: move;
+    .editor-left {
+      overflow-y: auto;
+      padding: 20px;
+      border-right: 1px solid var(--gray-200);
+      background: #fafafb;
+    }
+    .editor-right {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      z-index: 10;
-      border-radius: 4px;
-      box-sizing: border-box;
+      background: #f1f5f9;
+      overflow: hidden;
     }
-    .visual-box-overlay.monto {
-      border-color: #2196F3;
-      background: rgba(33, 150, 243, 0.15);
-      color: #2196F3;
-    }
-    .box-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .box-coords {
-      font-size: 8px;
-      opacity: 0.8;
-      margin-top: 2px;
-    }
-    .badge {
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
+    .editor-right-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      background: #fff;
+      font-size: 13px;
       font-weight: 600;
+      color: var(--gray-600);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
     }
-    .status-0 { background: #dcfce7; color: #166534; }
-    .status-1 { background: #fef9c3; color: #854d0e; }
-    .status-2 { background: #dbeafe; color: #1e40af; }
-    .fade-in {
-      animation: fadeIn 0.35s ease-out;
+    .pdf-scroll-area {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 0;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .pdf-canvas-wrap {
+      position: relative;
+      display: inline-block;
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+      border-radius: 4px;
+      background: white;
+      user-select: none;
+      flex-shrink: 0;
+      overflow: visible;
     }
+    .pdf-canvas-wrap canvas { display: block; }
+    .zone-box {
+      position: absolute;
+      border: 2px dashed #1e1e2e;
+      background: rgba(30,30,46,.08);
+      cursor: move;
+      box-sizing: border-box;
+      min-width: 40px;
+      min-height: 20px;
+    }
+    .zone-resize {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 14px; height: 14px;
+      background: #1e1e2e;
+      cursor: nwse-resize;
+      border-radius: 0 0 3px 0;
+      z-index: 10;
+    }
+    .zone-label {
+      position: absolute;
+      top: -22px; left: 0;
+      background: #1e1e2e;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px 3px 0 0;
+      white-space: nowrap;
+    }
+    .zone-demo {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: var(--gray-800);
+      font-size: 10px; pointer-events: none;
+      overflow: hidden; white-space: nowrap;
+    }
+    .filter-tab {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1.5px solid var(--gray-200);
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--gray-700);
+      transition: all var(--transition);
+    }
+    .filter-tab:hover { border-color: var(--3m-red); color: var(--3m-red); }
+    .filter-tab.active { background: var(--3m-red); color: white; border-color: var(--3m-red); }
   `]
 })
 export class ProjectsComponent implements OnInit {
   projects: any[] = [];
+  filteredProjects: any[] = [];
   project: any = {};
   allRewards: any[] = [];
   availableRewardsOptions: any[] = [];
@@ -547,6 +572,7 @@ export class ProjectsComponent implements OnInit {
   selectedRewardToAdd: any = null;
   projectDialog: boolean = false;
   activeTab: string = 'general';
+  searchQuery: string = '';
 
   constructor(private http: HttpClient) {}
 
@@ -558,6 +584,7 @@ export class ProjectsComponent implements OnInit {
   loadProjects() {
     this.http.get<any[]>('backend/admin_api.php?action=get_projects').subscribe(data => {
       this.projects = data;
+      this.filteredProjects = data;
     });
   }
 
@@ -591,6 +618,13 @@ export class ProjectsComponent implements OnInit {
       this.activeTab = 'general';
     }
     this.filterAvailableRewards();
+  }
+
+  onSearch() {
+    const q = this.searchQuery.toLowerCase();
+    this.filteredProjects = this.projects.filter(p => {
+      return p.Proyecto.toLowerCase().includes(q) || (p.nombrePdf && p.nombrePdf.toLowerCase().includes(q));
+    });
   }
 
   openNew() {
@@ -669,7 +703,6 @@ export class ProjectsComponent implements OnInit {
         const idProyecto = res.idProyecto;
         
         if (this.project.multiRecompensa == 1) {
-          // Guardar asociaciones de recompensas
           const payload = {
             idProyecto: idProyecto,
             rewards: this.associatedRewards
@@ -715,7 +748,7 @@ export class ProjectsComponent implements OnInit {
             Swal.fire('Eliminado', 'El proyecto ha sido borrado.', 'success');
           },
           error: () => {
-            Swal.fire('Error', 'No se pudo eliminar the proyecto.', 'error');
+            Swal.fire('Error', 'No se pudo eliminar el proyecto.', 'error');
           }
         });
       }
@@ -801,30 +834,44 @@ export class ProjectsComponent implements OnInit {
 
     try {
       const pdfjsLib = await this.loadPdfJs();
-      // El PDF se sirve desde https://prestaprenda.qrewards.com.mx/restAPI/qpn/
-      const pdfUrl = 'https://prestaprenda.qrewards.com.mx/restAPI/qpn/' + this.visualTarget.nombrePdf;
+      const pdfUrl = 'backend/admin_api.php?action=get_pdf&file=' + encodeURIComponent(this.visualTarget.nombrePdf);
       
-      const doc = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
-      const page = await doc.getPage(1);
-      
-      setTimeout(async () => {
-        const canvas = this.pdfCanvasRef.nativeElement;
-        const ctx = canvas.getContext('2d')!;
-        const viewportNative = page.getViewport({ scale: 1 });
-        
-        // Scale to fit screen
-        const scale = Math.min(650 / viewportNative.width, 1.5);
-        this.pdfScale = scale;
-        
-        const viewport = page.getViewport({ scale });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        
-        this.pdfLoading = false;
-        this.syncVisualBoxes();
-      }, 300);
+      this.http.get(pdfUrl, { responseType: 'arraybuffer' }).subscribe({
+        next: async (arrayBuffer: ArrayBuffer) => {
+          try {
+            const data = new Uint8Array(arrayBuffer);
+            const doc = await pdfjsLib.getDocument({ data }).promise;
+            const page = await doc.getPage(1);
+            
+            setTimeout(async () => {
+              const canvas = this.pdfCanvasRef.nativeElement;
+              const ctx = canvas.getContext('2d')!;
+              const viewportNative = page.getViewport({ scale: 1 });
+              
+              const scale = Math.min(650 / viewportNative.width, 1.5);
+              this.pdfScale = scale;
+              
+              const viewport = page.getViewport({ scale });
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              
+              await page.render({ canvasContext: ctx, viewport }).promise;
+              
+              this.pdfLoading = false;
+              this.syncVisualBoxes();
+            }, 300);
+          } catch (e) {
+            console.error('Error parsing PDF data:', e);
+            this.pdfLoading = false;
+            this.pdfError = true;
+          }
+        },
+        error: (err) => {
+          console.error('Error downloading PDF:', err);
+          this.pdfLoading = false;
+          this.pdfError = true;
+        }
+      });
 
     } catch (e) {
       console.error(e);
@@ -837,15 +884,21 @@ export class ProjectsComponent implements OnInit {
     const scale = this.pdfScale;
     const toPx = (mm: number) => (mm || 50) / (25.4 / 72) * scale;
 
+    // Compute box dimensions based on fuenteTexto (pt) scaled to the canvas
+    // In PDF pts: text height ≈ fontPt, approx 12 chars wide for typical code
+    const fontPt = parseFloat(this.visualTarget.fuenteTexto) || 12;
+    const boxH = Math.round(fontPt * scale * 1.25);          // height: line-height factor
+    const boxW = Math.round(fontPt * scale * 0.55 * 12);     // width: ~12 chars wide (each char ~0.55 of font size)
+    const montoW = Math.round(fontPt * scale * 0.55 * 7);    // monto box narrower
+
     const boxes: any[] = [];
     
-    // Box 1
     boxes.push({
       id: 'box1',
       label: 'Código 1',
       type: 'codigo',
-      w: 120,
-      h: 24,
+      w: boxW,
+      h: boxH,
       x: toPx(this.visualTarget.ejeX),
       y: toPx(this.visualTarget.ejeY),
       mmX: this.visualTarget.ejeX || 50,
@@ -857,8 +910,8 @@ export class ProjectsComponent implements OnInit {
         id: 'box2',
         label: 'Código 2',
         type: 'codigo',
-        w: 120,
-        h: 24,
+        w: boxW,
+        h: boxH,
         x: toPx(this.visualTarget.ejeX2),
         y: toPx(this.visualTarget.ejeY2),
         mmX: this.visualTarget.ejeX2 || 50,
@@ -871,8 +924,8 @@ export class ProjectsComponent implements OnInit {
         id: 'box3',
         label: 'Código 3',
         type: 'codigo',
-        w: 120,
-        h: 24,
+        w: boxW,
+        h: boxH,
         x: toPx(this.visualTarget.ejeX3),
         y: toPx(this.visualTarget.ejeY3),
         mmX: this.visualTarget.ejeX3 || 50,
@@ -885,8 +938,8 @@ export class ProjectsComponent implements OnInit {
         id: 'box4',
         label: 'Código 4',
         type: 'codigo',
-        w: 120,
-        h: 24,
+        w: boxW,
+        h: boxH,
         x: toPx(this.visualTarget.ejeX4),
         y: toPx(this.visualTarget.ejeY4),
         mmX: this.visualTarget.ejeX4 || 50,
@@ -895,12 +948,14 @@ export class ProjectsComponent implements OnInit {
     }
 
     if (this.showMontoBox()) {
+      const montoFontPt = parseFloat(this.visualTarget.fuenteTextoMonto) || fontPt;
+      const montoH = Math.round(montoFontPt * scale * 1.6);
       boxes.push({
         id: 'boxMonto',
         label: 'Monto',
         type: 'monto',
-        w: 100,
-        h: 24,
+        w: montoW,
+        h: montoH,
         x: toPx(this.visualTarget.ejeXMonto),
         y: toPx(this.visualTarget.ejeYMonto),
         mmX: this.visualTarget.ejeXMonto || 50,
@@ -912,6 +967,10 @@ export class ProjectsComponent implements OnInit {
   }
 
   startDragBox(event: MouseEvent, box: any) {
+    // Don't initiate drag if clicking the resize handle
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('zone-resize')) return;
+
     event.preventDefault();
     event.stopPropagation();
     this.draggedBox = box;
@@ -925,14 +984,11 @@ export class ProjectsComponent implements OnInit {
       const dx = e.clientX - this.dragStartX;
       const dy = e.clientY - this.dragStartY;
       
-      // Calculate new pixel positions
       let newX = this.boxStartX + dx;
       let newY = this.boxStartY + dy;
 
-      // Bound check
-      const wrap = this.pdfCanvasWrapRef?.nativeElement;
       const canvas = this.pdfCanvasRef?.nativeElement;
-      if (wrap && canvas) {
+      if (canvas) {
         newX = Math.max(0, Math.min(newX, canvas.width - box.w));
         newY = Math.max(0, Math.min(newY, canvas.height - box.h));
       }
@@ -940,7 +996,6 @@ export class ProjectsComponent implements OnInit {
       this.draggedBox.x = newX;
       this.draggedBox.y = newY;
 
-      // Convert to mm
       this.draggedBox.mmX = Math.round(newX / this.pdfScale * (25.4 / 72));
       this.draggedBox.mmY = Math.round(newY / this.pdfScale * (25.4 / 72));
     };
@@ -955,8 +1010,30 @@ export class ProjectsComponent implements OnInit {
     document.addEventListener('mouseup', mouseUpHandler);
   }
 
+  startResizeBox(event: MouseEvent, box: any) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startMouseX = event.clientX;
+    const startMouseY = event.clientY;
+    const startW = box.w;
+    const startH = box.h;
+
+    const mouseMoveHandler = (e: MouseEvent) => {
+      box.w = Math.max(40, startW + (e.clientX - startMouseX));
+      box.h = Math.max(20, startH + (e.clientY - startMouseY));
+    };
+
+    const mouseUpHandler = () => {
+      document.removeEventListener('mousemove', mouseMoveHandler);
+      document.removeEventListener('mouseup', mouseUpHandler);
+    };
+
+    document.addEventListener('mousemove', mouseMoveHandler);
+    document.addEventListener('mouseup', mouseUpHandler);
+  }
+
   applyVisualCoordinates() {
-    // Write back box positions to target
     this.draggableBoxes.forEach(box => {
       if (box.id === 'box1') {
         this.visualTarget.ejeX = box.mmX;
@@ -977,10 +1054,8 @@ export class ProjectsComponent implements OnInit {
     });
 
     if (this.isEditingRelation) {
-      // Update relation in associatedRewards array
       this.associatedRewards[this.editingRelationIndex] = { ...this.visualTarget };
     } else {
-      // Update main project
       this.project = { ...this.visualTarget };
     }
 
