@@ -12,18 +12,17 @@ function writeLog($msg) {
 }
 
 $action = $_GET['action'] ?? '';
-$idProyectoFixed = 42;
 
 try {
     switch ($action) {
         case 'validate':
-            checkToken($mysqli, $idProyectoFixed);
+            checkToken($mysqli);
             break;
         case 'getTelefonia':
             getTelefonia($mysqli);
             break;
         case 'recharge':
-            processRecharge($mysqli, $idProyectoFixed);
+            processRecharge($mysqli);
             break;
         default:
             echo json_encode(['error' => 'Invalid action']);
@@ -45,7 +44,7 @@ function safePrepare($mysqli, $sql) {
     return $stmt;
 }
 
-function checkToken($mysqli, $idProyecto) {
+function checkToken($mysqli) {
     $data = json_decode(file_get_contents('php://input'), true);
     $token = $data['code'] ?? '';
 
@@ -54,14 +53,14 @@ function checkToken($mysqli, $idProyecto) {
         return;
     }
 
-    // Buscamos el registro y obtenemos idRecompensa desde tblProyecto
+    // Buscamos el registro y obtenemos idRecompensa e idProyecto desde tblRegistro / tblProyecto
     $stmt = safePrepare($mysqli, "
-        SELECT r.idRegistro, r.Celular, r.Estatus, p.idRecompensa
+        SELECT r.idRegistro, r.Celular, r.Estatus, r.idProyecto, p.idRecompensa
         FROM tblRegistro r
         JOIN tblProyecto p ON r.idProyecto = p.idProyecto
-        WHERE r.Token = ? AND r.idProyecto = ?
+        WHERE r.Token = ?
     ");
-    $stmt->bind_param("si", $token, $idProyecto);
+    $stmt->bind_param("s", $token);
     $stmt->execute();
     $res = $stmt->get_result();
     $registro = $res->fetch_assoc();
@@ -78,13 +77,13 @@ function checkToken($mysqli, $idProyecto) {
         echo json_encode([
             'success' => true,
             'status' => 'REQUIRE_TELEPHONY',
-            'idProyecto' => $idProyecto,
-            'idRecompensa' => $registro['idRecompensa'] ?? 1
+            'idProyecto' => (int)$registro['idProyecto'],
+            'idRecompensa' => (int)($registro['idRecompensa'] ?? 1)
         ]);
     }
 }
 
-function processRecharge($mysqli, $idProyecto) {
+function processRecharge($mysqli) {
     $data = json_decode(file_get_contents('php://input'), true);
     $phone = $data['phone'] ?? '';
     $idTelefonia = $data['idTelefonia'] ?? 0;
@@ -96,9 +95,9 @@ function processRecharge($mysqli, $idProyecto) {
         return;
     }
 
-    // 1. Validar que el registro exista y tenga Estatus = 2
-    $stmtCheck = safePrepare($mysqli, "SELECT idRegistro, Estatus, idUsuario FROM tblRegistro WHERE Token = ? AND idProyecto = ?");
-    $stmtCheck->bind_param("si", $token, $idProyecto);
+    // 1. Validar que el registro exista
+    $stmtCheck = safePrepare($mysqli, "SELECT idRegistro, Estatus, idUsuario, idProyecto FROM tblRegistro WHERE Token = ?");
+    $stmtCheck->bind_param("s", $token);
     $stmtCheck->execute();
     $registro = $stmtCheck->get_result()->fetch_assoc();
 
@@ -117,6 +116,7 @@ function processRecharge($mysqli, $idProyecto) {
 
     $idRegistro = $registro['idRegistro'];
     $idUsuario = $registro['idUsuario'];
+    $idProyecto = $registro['idProyecto'];
 
     // 2. Obtener SKU de telefonía
     $stmtSku = safePrepare($mysqli, "
