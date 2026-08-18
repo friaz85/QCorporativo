@@ -25,4 +25,8 @@ export class DataService {
   selectReward(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}?action=selectReward`, data);
   }
+
+  markDownloaded(idRegistro: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}?action=markDownloaded`, { idRegistro });
+  }
 }

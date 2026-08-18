@@ -70,6 +70,7 @@ export class RegistrationComponent implements OnInit {
   selectedReward: any = null;
   validationData: any = null;
   pdfUrl: string = '';
+  idRegistro: number | null = null;
 
   constructor(private dataService: DataService) {}
 
@@ -132,6 +133,9 @@ export class RegistrationComponent implements OnInit {
 
   handleResponse(res: any) {
     this.validationData = res;
+    if (res.idRegistro) {
+      this.idRegistro = res.idRegistro;
+    }
     
     switch (res.status) {
       case 'ALREADY_REDEEMED':
@@ -245,6 +249,12 @@ export class RegistrationComponent implements OnInit {
   }
 
   downloadPdf() {
+    if (this.idRegistro) {
+      this.dataService.markDownloaded(this.idRegistro).subscribe({
+        next: () => {},
+        error: (err) => console.error('Error al registrar fecha de descarga', err)
+      });
+    }
     if (this.pdfUrl) {
       window.open(this.pdfUrl, '_blank');
     }

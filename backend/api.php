@@ -27,6 +27,9 @@ try {
         case 'selectReward':
             selectReward($mysqli);
             break;
+        case 'markDownloaded':
+            markDownloaded($mysqli);
+            break;
         default:
             echo json_encode(['error' => 'Invalid action']);
             break;
@@ -152,8 +155,35 @@ function validateCode($mysqli) {
         }
     }
 
-    // Escenario: Ya utilizado
+    // Escenario: Ya utilizado (Activo = 0)
     if ($codigo['codigoActivo'] == 0) {
+        $stmtReg = safePrepare($mysqli, "
+            SELECT r.idRegistro, r.ArchivoRecompensa, r.FechaDescarga, u.Correo
+            FROM tblRegistro r
+            JOIN tblUsuario u ON r.idUsuario = u.idUsuario
+            WHERE r.idCodigoEntrada = ?
+            ORDER BY r.idRegistro DESC LIMIT 1
+        ");
+        $stmtReg->bind_param("i", $codigo['idCodigoEntrada']);
+        $stmtReg->execute();
+        $reg = $stmtReg->get_result()->fetch_assoc();
+
+        if ($reg && strtolower(trim($reg['Correo'])) === strtolower(trim($email))) {
+            // El correo ingresado es el mismo que realizó el canje
+            if (empty($reg['FechaDescarga']) || $reg['FechaDescarga'] === '0000-00-00 00:00:00') {
+                // No se ha descargado el cupón todavía -> Permite ver/descargar cupón
+                echo json_encode([
+                    'success' => true,
+                    'status' => 'ALREADY_REDEEMED',
+                    'pdfUrl' => $reg['ArchivoRecompensa'],
+                    'idRegistro' => (int)$reg['idRegistro'],
+                    'message' => 'Este código ya fue utilizado, pero aún no has descargado tu cupón.'
+                ]);
+                return;
+            }
+        }
+
+        // Si ya se descargó el cupón o si el correo no es el mismo que lo utilizó
         echo json_encode(['error' => 'Este código de entrada ya ha sido utilizado.']);
         return;
     }
@@ -630,3 +660,20 @@ function processRecharge($mysqli) {
 
     echo json_encode($result);
 }
+
+function markDownloaded($mysqli) {
+    $data = getDecryptedInput();
+    $idRegistro = (int)($data['idRegistro'] ?? ($_GET['idRegistro'] ?? 0));
+
+    if ($idRegistro <= 0) {
+        echo json_encode(['error' => 'idRegistro requerido']);
+        return;
+    }
+
+    $stmt = safePrepare($mysqli, "UPDATE tblRegistro SET FechaDescarga = NOW() WHERE idRegistro = ? AND (FechaDescarga IS NULL OR FechaDescarga = '0000-00-00 00:00:00')");
+    $stmt->bind_param("i", $idRegistro);
+    $stmt->execute();
+
+    echo json_encode(['success' => true, 'affected' => $stmt->affected_rows]);
+}
+?>

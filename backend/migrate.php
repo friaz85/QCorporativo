@@ -40,7 +40,7 @@ while ($row = $res->fetch_assoc()) {
     $existingColumns[] = strtolower($row['Field']);
 }
 
-// 2. Agregar las columnas faltantes
+// 2. Agregar las columnas faltantes a tblRecompensaProyecto
 foreach ($fieldsToAdd as $column => $definition) {
     if (!in_array(strtolower($column), $existingColumns)) {
         $sql = "ALTER TABLE `$tableName` ADD COLUMN `$column` $definition";
@@ -53,6 +53,30 @@ foreach ($fieldsToAdd as $column => $definition) {
     } else {
         echo "La columna `$column` ya existe en `$tableName` (Saltando)\n";
     }
+}
+
+// 3. Migración para tblRegistro (FechaDescarga)
+$regTableName = 'tblRegistro';
+echo "\nIniciando migración para la tabla: $regTableName\n";
+$regExistingColumns = [];
+$resReg = $mysqli->query("SHOW COLUMNS FROM `$regTableName`");
+if ($resReg) {
+    while ($row = $resReg->fetch_assoc()) {
+        $regExistingColumns[] = strtolower($row['Field']);
+    }
+    if (!in_array('fechadescarga', $regExistingColumns)) {
+        $sql = "ALTER TABLE `$regTableName` ADD COLUMN `FechaDescarga` DATETIME NULL DEFAULT NULL";
+        echo "Ejecutando: $sql ... ";
+        if ($mysqli->query($sql)) {
+            echo "OK\n";
+        } else {
+            echo "ERROR: " . $mysqli->error . "\n";
+        }
+    } else {
+        echo "La columna `FechaDescarga` ya existe en `$regTableName` (Saltando)\n";
+    }
+} else {
+    echo "ERROR al consultar $regTableName: " . $mysqli->error . "\n";
 }
 
 echo "\nMigración finalizada.\n";
