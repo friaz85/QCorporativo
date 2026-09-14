@@ -54,6 +54,9 @@ try {
         case 'delete_exit_code':
             deleteExitCode($mysqli);
             break;
+        case 'list_pdfs':
+            listPdfs();
+            break;
         case 'download_layout':
             downloadLayout();
             break;
@@ -78,6 +81,20 @@ function safePrepare($mysqli, $sql) {
         throw new Exception("Error en SQL: " . $mysqli->error . " | Query: " . trim($sql));
     }
     return $stmt;
+}
+
+function listPdfs() {
+    $dir = __DIR__ . '/qpn/';
+    $files = [];
+    if (is_dir($dir)) {
+        foreach (scandir($dir) as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) === 'pdf') {
+                $files[] = $file;
+            }
+        }
+    }
+    sort($files);
+    echo json_encode($files);
 }
 
 function adminLogin($mysqli) {

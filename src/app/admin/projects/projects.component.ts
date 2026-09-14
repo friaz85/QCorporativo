@@ -148,7 +148,10 @@ import Swal from 'sweetalert2';
             <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
               <div class="form-group">
                 <label class="form-label">Plantilla PDF (.pdf)</label>
-                <input type="text" class="form-control" [(ngModel)]="project.nombrePdf" placeholder="plantilla_cupon.pdf" />
+                <select class="form-control" [(ngModel)]="project.nombrePdf">
+                  <option value="">— Seleccionar plantilla —</option>
+                  <option *ngFor="let pdf of availablePdfs" [value]="pdf">{{ pdf }}</option>
+                </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Número de Páginas</label>
@@ -284,7 +287,10 @@ import Swal from 'sweetalert2';
                 <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; margin-bottom:12px;">
                   <div class="form-group" style="margin:0;">
                     <label class="form-label" style="font-size:11px;">Plantilla PDF</label>
-                    <input type="text" class="form-control" [(ngModel)]="rel.nombrePdf" />
+                    <select class="form-control" [(ngModel)]="rel.nombrePdf">
+                      <option value="">— Seleccionar —</option>
+                      <option *ngFor="let pdf of availablePdfs" [value]="pdf">{{ pdf }}</option>
+                    </select>
                   </div>
                   <div class="form-group" style="margin:0;">
                     <label class="form-label" style="font-size:11px;">Páginas</label>
@@ -573,12 +579,14 @@ export class ProjectsComponent implements OnInit {
   projectDialog: boolean = false;
   activeTab: string = 'general';
   searchQuery: string = '';
+  availablePdfs: string[] = [];
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
     this.loadProjects();
     this.loadRewards();
+    this.loadPdfs();
   }
 
   loadProjects() {
@@ -592,6 +600,13 @@ export class ProjectsComponent implements OnInit {
     this.http.get<any[]>('backend/admin_api.php?action=get_rewards').subscribe(data => {
       this.allRewards = data;
       this.filterAvailableRewards();
+    });
+  }
+
+  loadPdfs() {
+    this.http.get<string[]>('backend/admin_api.php?action=list_pdfs').subscribe({
+      next: data => { this.availablePdfs = data; },
+      error: () => { this.availablePdfs = []; }
     });
   }
 
@@ -819,7 +834,7 @@ export class ProjectsComponent implements OnInit {
     } else {
       this.isEditingRelation = false;
       this.visualTarget = { ...this.project };
-      this.visualEditorTitle = `Proyecto: ${this.project.Proyecto}`;
+      this.visualEditorTitle = `Proyecto: ${this.project.Proyecto || 'Sin nombre'}`;
     }
 
     if (!this.visualTarget.nombrePdf) {
