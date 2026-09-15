@@ -161,7 +161,11 @@ function saveProject($mysqli) {
         'numeroParticipaciones' => isset($data['numeroParticipaciones']) ? (int)$data['numeroParticipaciones'] : 1,
         'FechaInicio' => !empty($data['FechaInicio']) ? $data['FechaInicio'] : null,
         'FechaFin' => !empty($data['FechaFin']) ? $data['FechaFin'] : null,
-        'Activo' => (int)($data['Activo'] ?? 1)
+        'Activo' => (int)($data['Activo'] ?? 1),
+        'esQr' => (int)($data['esQr'] ?? 0),
+        'tamanoQr' => isset($data['tamanoQr']) ? (int)$data['tamanoQr'] : 35,
+        'ejeXQr' => $data['ejeXQr'] ?? null,
+        'ejeYQr' => $data['ejeYQr'] ?? null
     ];
 
     if ($id > 0) {
@@ -171,16 +175,18 @@ function saveProject($mysqli) {
                 ejeX = ?, ejeY = ?, ejeX2 = ?, ejeY2 = ?, ejeX3 = ?, ejeY3 = ?, ejeX4 = ?, ejeY4 = ?, 
                 ejeXMonto = ?, ejeYMonto = ?, montoVariable = ?, fuenteTexto = ?, colorTexto = ?, 
                 fuenteTextoMonto = ?, colorTextoMonto = ?, MontoRecarga = ?, numeroPaginas = ?, 
-                numeroCodigos = ?, numeroParticipaciones = ?, FechaInicio = ?, FechaFin = ?, Activo = ?
+                numeroCodigos = ?, numeroParticipaciones = ?, FechaInicio = ?, FechaFin = ?, Activo = ?,
+                esQr = ?, tamanoQr = ?, ejeXQr = ?, ejeYQr = ?
                 WHERE idProyecto = ?";
         $stmt = safePrepare($mysqli, $sql);
         $stmt->bind_param(
-            "sisssssssssssssssssiiissii",
+            "sisssssssssssssssssiiissiiisii",
             $fields['Proyecto'], $fields['multiRecompensa'], $fields['nombrePdf'],
             $fields['ejeX'], $fields['ejeY'], $fields['ejeX2'], $fields['ejeY2'], $fields['ejeX3'], $fields['ejeY3'], $fields['ejeX4'], $fields['ejeY4'],
             $fields['ejeXMonto'], $fields['ejeYMonto'], $fields['montoVariable'], $fields['fuenteTexto'], $fields['colorTexto'],
             $fields['fuenteTextoMonto'], $fields['colorTextoMonto'], $fields['MontoRecarga'], $fields['numeroPaginas'],
             $fields['numeroCodigos'], $fields['numeroParticipaciones'], $fields['FechaInicio'], $fields['FechaFin'], $fields['Activo'],
+            $fields['esQr'], $fields['tamanoQr'], $fields['ejeXQr'], $fields['ejeYQr'],
             $id
         );
         $stmt->execute();
@@ -192,16 +198,18 @@ function saveProject($mysqli) {
                     ejeX, ejeY, ejeX2, ejeY2, ejeX3, ejeY3, ejeX4, ejeY4, 
                     ejeXMonto, ejeYMonto, montoVariable, fuenteTexto, colorTexto, 
                     fuenteTextoMonto, colorTextoMonto, MontoRecarga, numeroPaginas, 
-                    numeroCodigos, numeroParticipaciones, FechaInicio, FechaFin, Activo
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    numeroCodigos, numeroParticipaciones, FechaInicio, FechaFin, Activo,
+                    esQr, tamanoQr, ejeXQr, ejeYQr
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = safePrepare($mysqli, $sql);
         $stmt->bind_param(
-            "sisssssssssssssssssiiissi",
+            "sisssssssssssssssssiiissiiiss",
             $fields['Proyecto'], $fields['multiRecompensa'], $fields['nombrePdf'],
             $fields['ejeX'], $fields['ejeY'], $fields['ejeX2'], $fields['ejeY2'], $fields['ejeX3'], $fields['ejeY3'], $fields['ejeX4'], $fields['ejeY4'],
             $fields['ejeXMonto'], $fields['ejeYMonto'], $fields['montoVariable'], $fields['fuenteTexto'], $fields['colorTexto'],
             $fields['fuenteTextoMonto'], $fields['colorTextoMonto'], $fields['MontoRecarga'], $fields['numeroPaginas'],
-            $fields['numeroCodigos'], $fields['numeroParticipaciones'], $fields['FechaInicio'], $fields['FechaFin'], $fields['Activo']
+            $fields['numeroCodigos'], $fields['numeroParticipaciones'], $fields['FechaInicio'], $fields['FechaFin'], $fields['Activo'],
+            $fields['esQr'], $fields['tamanoQr'], $fields['ejeXQr'], $fields['ejeYQr']
         );
         $stmt->execute();
         echo json_encode(['success' => true, 'idProyecto' => $mysqli->insert_id]);
@@ -320,20 +328,26 @@ function saveProjectRewards($mysqli) {
         $fuenteTextoMonto = (int)($r['fuenteTextoMonto'] ?? 12);
         $montoRecarga = $r['MontoRecarga'] ?? null;
         $numeroPaginas = (int)($r['numeroPaginas'] ?? 1);
+        $esQr = (int)($r['esQr'] ?? 0);
+        $tamanoQr = (int)($r['tamanoQr'] ?? 35);
+        $ejeXQr = $r['ejeXQr'] ?? null;
+        $ejeYQr = $r['ejeYQr'] ?? null;
 
         $sql = "INSERT INTO tblRecompensaProyecto (
                     idProyecto, idRecompensa, Activo, numeroCodigos, nombrePdf, 
                     ejeX, ejeY, ejeX2, ejeY2, ejeX3, ejeY3, ejeX4, ejeY4, 
                     ejeXMonto, ejeYMonto, montoVariable, fuenteTexto, colorTexto, 
-                    colorTextoMonto, fuenteTextoMonto, MontoRecarga, numeroPaginas
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    colorTextoMonto, fuenteTextoMonto, MontoRecarga, numeroPaginas,
+                    esQr, tamanoQr, ejeXQr, ejeYQr
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = safePrepare($mysqli, $sql);
         $stmt->bind_param(
-            "iiiisssssssssssisssisi",
+            "iiiisssssssssssisssisiiiss",
             $idProyecto, $idRecompensa, $activo, $numCodigos, $nombrePdf,
             $ejeX, $ejeY, $ejeX2, $ejeY2, $ejeX3, $ejeY3, $ejeX4, $ejeY4,
             $ejeXMonto, $ejeYMonto, $montoVariable, $fuenteTexto, $colorTexto,
-            $colorTextoMonto, $fuenteTextoMonto, $montoRecarga, $numeroPaginas
+            $colorTextoMonto, $fuenteTextoMonto, $montoRecarga, $numeroPaginas,
+            $esQr, $tamanoQr, $ejeXQr, $ejeYQr
         );
         $stmt->execute();
     }

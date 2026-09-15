@@ -170,6 +170,29 @@ import Swal from 'sweetalert2';
               </div>
             </div>
 
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid var(--gray-200);">
+              <div class="form-group" style="display:flex; align-items:center; gap:8px; margin:0;">
+                <input type="checkbox" id="esQrCheck" [checked]="project.esQr == 1" (change)="project.esQr = $any($event.target).checked ? 1 : 0" />
+                <label for="esQrCheck" style="font-weight:600; cursor:pointer; margin:0; font-size:13px;">📱 Imprimir Código 1 como QR</label>
+              </div>
+              <div class="form-group" style="margin:0;" *ngIf="project.esQr == 1">
+                <label class="form-label" style="font-size:11px;">Tamaño QR (mm)</label>
+                <input type="number" class="form-control" [(ngModel)]="project.tamanoQr" placeholder="35" min="10" max="200" />
+              </div>
+            </div>
+
+            <!-- Coordenadas dedicadas para QR en el Proyecto -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; background:#eff6ff; padding:10px 12px; border-radius:8px; border:1px dashed #93c5fd;" *ngIf="project.esQr == 1">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-size:11px; color:#1d4ed8; font-weight:600;">Eje X QR (mm)</label>
+                <input type="number" class="form-control" [(ngModel)]="project.ejeXQr" placeholder="151" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-size:11px; color:#1d4ed8; font-weight:600;">Eje Y QR (mm)</label>
+                <input type="number" class="form-control" [(ngModel)]="project.ejeYQr" placeholder="197" />
+              </div>
+            </div>
+
             <div style="border:1px solid var(--gray-200); border-radius:10px; padding:16px; margin-bottom:16px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); padding-bottom:8px; margin-bottom:12px;">
                 <h4 style="margin:0;">Coordenadas de Códigos (Ejes)</h4>
@@ -322,6 +345,28 @@ import Swal from 'sweetalert2';
                   <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:11px;">Eje Y Monto</label><input type="number" class="form-control" [(ngModel)]="rel.ejeYMonto" /></div>
                 </div>
 
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:#f8fafc; padding:8px 12px; border-radius:6px; border:1px solid var(--gray-200);">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="esQrRel-{{i}}" [checked]="rel.esQr == 1" (change)="rel.esQr = $any($event.target).checked ? 1 : 0" />
+                    <label for="esQrRel-{{i}}" style="font-weight:600; cursor:pointer; font-size:12px; margin:0;">📱 Imprimir Código 1 como QR</label>
+                  </div>
+                  <div *ngIf="rel.esQr == 1" style="display:flex; align-items:center; gap:6px;">
+                    <label style="font-size:11px; margin:0;">Tamaño QR (mm):</label>
+                    <input type="number" class="form-control" style="width:70px; padding:4px 8px;" [(ngModel)]="rel.tamanoQr" placeholder="35" />
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; background:#eff6ff; padding:8px 12px; border-radius:6px; border:1px dashed #93c5fd;" *ngIf="rel.esQr == 1">
+                  <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:11px; color:#1d4ed8; font-weight:600;">Eje X QR (mm)</label>
+                    <input type="number" class="form-control" [(ngModel)]="rel.ejeXQr" placeholder="151" />
+                  </div>
+                  <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:11px; color:#1d4ed8; font-weight:600;">Eje Y QR (mm)</label>
+                    <input type="number" class="form-control" [(ngModel)]="rel.ejeYQr" placeholder="197" />
+                  </div>
+                </div>
+
                 <div style="display:flex; align-items:center; gap:8px;">
                   <input type="checkbox" id="mva-{{i}}" [(ngModel)]="rel.montoVariable" [checked]="rel.montoVariable == 1" (change)="rel.montoVariable = rel.montoVariable == 1 ? 0 : 1" />
                   <label for="mva-{{i}}" style="font-weight:600; cursor:pointer;">Imprimir Monto</label>
@@ -381,10 +426,24 @@ import Swal from 'sweetalert2';
 
             <!-- Ejes inputs -->
             <div style="border:1px solid var(--gray-200); border-radius:8px; padding:12px; margin-bottom:12px;">
-              <span style="font-weight:700; color:var(--3m-red); font-size:11.5px; display:block; margin-bottom:8px;">Código 1</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-weight:700; color:var(--3m-red); font-size:11.5px;">Código 1</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <input type="checkbox" id="vEsQr" [checked]="visualTarget.esQr == 1" (change)="visualTarget.esQr = $any($event.target).checked ? 1 : 0; syncVisualBoxes()" />
+                  <label for="vEsQr" style="font-size:11px; font-weight:600; cursor:pointer; margin:0;">📱 Es QR</label>
+                </div>
+              </div>
+              <div *ngIf="visualTarget.esQr == 1" style="background:#eff6ff; padding:8px 10px; border-radius:6px; margin-bottom:10px; border:1px dashed #93c5fd;">
+                <label class="form-label" style="font-size:10px; color:#1d4ed8; font-weight:600;">Tamaño QR (mm)</label>
+                <input type="number" class="form-control" [(ngModel)]="visualTarget.tamanoQr" (ngModelChange)="syncVisualBoxes()" placeholder="35" min="10" max="200" style="margin-bottom:8px;" />
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px; color:#1d4ed8;">X QR (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeXQr" (ngModelChange)="syncVisualBoxes()" /></div>
+                  <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px; color:#1d4ed8;">Y QR (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeYQr" (ngModelChange)="syncVisualBoxes()" /></div>
+                </div>
+              </div>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeX" (change)="syncVisualBoxes()" /></div>
-                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeY" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">X Texto (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeX" (change)="syncVisualBoxes()" /></div>
+                <div class="form-group" style="margin:0;"><label class="form-label" style="font-size:10px;">Y Texto (mm)</label><input type="number" class="form-control" [(ngModel)]="visualTarget.ejeY" (change)="syncVisualBoxes()" /></div>
               </div>
             </div>
 
@@ -445,12 +504,13 @@ import Swal from 'sweetalert2';
                      [style.left.px]="box.x" [style.top.px]="box.y"
                      [style.width.px]="box.w" [style.height.px]="box.h"
                      (mousedown)="startDragBox($event, box)"
-                     [style.border-color]="box.type === 'monto' ? '#0369a1' : '#1e1e2e'"
-                     [style.background]="box.type === 'monto' ? 'rgba(3,105,161,.08)' : 'rgba(30,30,46,.08)'">
-                  <div class="zone-label" [style.background]="box.type === 'monto' ? '#0369a1' : '#1e1e2e'">{{ box.label }}</div>
-                  <div class="zone-demo">{{ box.mmX }}x{{ box.mmY }} mm</div>
+                     [style.border-color]="box.type === 'monto' ? '#0369a1' : (box.type === 'qr' ? '#16a34a' : '#1e1e2e')"
+                     [style.background]="box.type === 'monto' ? 'rgba(3,105,161,.08)' : (box.type === 'qr' ? 'rgba(22,163,74,.12)' : 'rgba(30,30,46,.08)')">
+                  <div class="zone-label" [style.background]="box.type === 'monto' ? '#0369a1' : (box.type === 'qr' ? '#16a34a' : '#1e1e2e')">{{ box.label }}</div>
+                  <div class="zone-demo" *ngIf="box.type !== 'qr'">{{ box.mmX }}x{{ box.mmY }} mm</div>
+                  <div class="zone-demo" *ngIf="box.type === 'qr'" style="font-weight:bold; font-size:11px;">📱 QR: {{ visualTarget.tamanoQr || 35 }} mm</div>
                   <div class="zone-resize"
-                       [style.background]="box.type === 'monto' ? '#0369a1' : '#1e1e2e'"
+                       [style.background]="box.type === 'monto' ? '#0369a1' : (box.type === 'qr' ? '#16a34a' : '#1e1e2e')"
                        (mousedown)="startResizeBox($event, box)"></div>
                 </div>
               </div>
@@ -649,7 +709,11 @@ export class ProjectsComponent implements OnInit {
       numeroPaginas: 1,
       numeroCodigos: 1,
       numeroParticipaciones: 1,
-      montoVariable: '0'
+      montoVariable: '0',
+      esQr: 0,
+      tamanoQr: 35,
+      ejeXQr: null,
+      ejeYQr: null
     };
     this.associatedRewards = [];
     this.activeTab = 'general';
@@ -694,7 +758,11 @@ export class ProjectsComponent implements OnInit {
       colorTextoMonto: this.project.colorTextoMonto || null,
       fuenteTextoMonto: this.project.fuenteTextoMonto || 12,
       MontoRecarga: this.project.MontoRecarga || null,
-      numeroPaginas: this.project.numeroPaginas || 1
+      numeroPaginas: this.project.numeroPaginas || 1,
+      esQr: this.project.esQr || 0,
+      tamanoQr: this.project.tamanoQr || 35,
+      ejeXQr: this.project.ejeXQr || null,
+      ejeYQr: this.project.ejeYQr || null
     };
 
     this.associatedRewards.push(newRelation);
@@ -908,9 +976,33 @@ export class ProjectsComponent implements OnInit {
 
     const boxes: any[] = [];
     
+    const isQr = (this.visualTarget.esQr == 1);
+    const qrSizeMm = parseFloat(this.visualTarget.tamanoQr) || 35;
+    const qrPx = Math.round(toPx(qrSizeMm));
+
+    if (isQr) {
+      const qrMmX = (this.visualTarget.ejeXQr !== null && this.visualTarget.ejeXQr !== undefined && this.visualTarget.ejeXQr !== '')
+                    ? Number(this.visualTarget.ejeXQr)
+                    : (Number(this.visualTarget.ejeX) || 151);
+      const qrMmY = (this.visualTarget.ejeYQr !== null && this.visualTarget.ejeYQr !== undefined && this.visualTarget.ejeYQr !== '')
+                    ? Number(this.visualTarget.ejeYQr)
+                    : (Number(this.visualTarget.ejeY) || 197);
+      boxes.push({
+        id: 'boxQr',
+        label: 'Código QR',
+        type: 'qr',
+        w: qrPx,
+        h: qrPx,
+        x: toPx(qrMmX),
+        y: toPx(qrMmY),
+        mmX: qrMmX,
+        mmY: qrMmY
+      });
+    }
+
     boxes.push({
       id: 'box1',
-      label: 'Código 1',
+      label: isQr ? 'Código 1 (Texto)' : 'Código 1',
       type: 'codigo',
       w: boxW,
       h: boxH,
@@ -1050,7 +1142,16 @@ export class ProjectsComponent implements OnInit {
 
   applyVisualCoordinates() {
     this.draggableBoxes.forEach(box => {
-      if (box.id === 'box1') {
+      if (box.id === 'boxQr') {
+        this.visualTarget.ejeXQr = box.mmX;
+        this.visualTarget.ejeYQr = box.mmY;
+        if (this.pdfScale > 0) {
+          const mmFromPx = Math.round((box.w / this.pdfScale) * (25.4 / 72));
+          if (mmFromPx > 0) {
+            this.visualTarget.tamanoQr = mmFromPx;
+          }
+        }
+      } else if (box.id === 'box1') {
         this.visualTarget.ejeX = box.mmX;
         this.visualTarget.ejeY = box.mmY;
       } else if (box.id === 'box2') {

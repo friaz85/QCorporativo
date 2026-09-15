@@ -365,7 +365,8 @@ function finalizeRedemption($mysqli, $codigo, $email, $idRecompensa, $preAssigne
             $stmtRP = safePrepare($mysqli, "
                 SELECT nombrePdf, ejeX, ejeY, fuenteTexto, colorTexto, numeroPaginas,
                        numeroCodigos, MontoRecarga, ejeX2, ejeY2, ejeX3, ejeY3, ejeX4, ejeY4,
-                       ejeXMonto, ejeYMonto, montoVariable, colorTextoMonto, fuenteTextoMonto
+                       ejeXMonto, ejeYMonto, montoVariable, colorTextoMonto, fuenteTextoMonto,
+                       esQr, tamanoQr, ejeXQr, ejeYQr
                 FROM tblRecompensaProyecto 
                 WHERE idProyecto = ? AND idRecompensa = ?
             ");
@@ -468,10 +469,40 @@ function generateCouponPDF($proyecto, $codigoSalida) {
     if ($numCodigos > 4) $numCodigos = 4;
 
     // Código 1
-    $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
-    $pdf->SetXY($proyecto['ejeX'] ?: 50, $proyecto['ejeY'] ?: 50);
     $val = is_array($codigoSalida) ? ($codigoSalida['CodigoSalida'] ?? 'N/A') : $codigoSalida;
-    $pdf->Write(10, $val);
+    $esQr = (!empty($proyecto['esQr']) && $proyecto['esQr'] == 1);
+    $tamanoQr = (!empty($proyecto['tamanoQr']) && (int)$proyecto['tamanoQr'] > 0) ? (int)$proyecto['tamanoQr'] : 35;
+
+    if ($esQr && !empty($val) && $val !== 'N/A') {
+        // Cargar phpqrcode si no está cargada
+        if (!class_exists('QRcode')) {
+            $localQrLib = __DIR__ . '/library/phpqrcode/qrlib.php';
+            $altServerQrLib = '/home/customer/www/qrewards.com.mx/public_html/corporativo/backend/library/phpqrcode/qrlib.php';
+            $serverQrLib = '/home/customer/www/prestaprenda.qrewards.com.mx/public_html/back/library/phpqrcode/qrlib.php';
+            if (file_exists($localQrLib)) {
+                require_once $localQrLib;
+            } elseif (file_exists($altServerQrLib)) {
+                require_once $altServerQrLib;
+            } elseif (file_exists($serverQrLib)) {
+                require_once $serverQrLib;
+            }
+        }
+
+        $tmpQrFile = sys_get_temp_dir() . '/qr_' . uniqid() . '_' . rand(1000, 9999) . '.png';
+        if (class_exists('QRcode')) {
+            \QRcode::png($val, $tmpQrFile, 'H', 6, 2);
+            if (file_exists($tmpQrFile)) {
+                $qrX = (float)(!empty($proyecto['ejeXQr']) ? $proyecto['ejeXQr'] : ($proyecto['ejeX'] ?: 50));
+                $qrY = (float)(!empty($proyecto['ejeYQr']) ? $proyecto['ejeYQr'] : ($proyecto['ejeY'] ?: 50));
+                $pdf->Image($tmpQrFile, $qrX, $qrY, $tamanoQr, $tamanoQr);
+                @unlink($tmpQrFile);
+            }
+        }
+    } else {
+        $pdf->SetFont('Arial', 'B', $proyecto['fuenteTexto'] ?: 12);
+        $pdf->SetXY($proyecto['ejeX'] ?: 50, $proyecto['ejeY'] ?: 50);
+        $pdf->Write(10, $val);
+    }
 
     // Código 2
     if ($numCodigos >= 2) {

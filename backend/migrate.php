@@ -25,7 +25,11 @@ $fieldsToAdd = [
     'ejeYMonto' => "INT NULL DEFAULT NULL",
     'montoVariable' => "TINYINT(1) NULL DEFAULT 0",
     'colorTextoMonto' => "VARCHAR(50) NULL DEFAULT NULL",
-    'fuenteTextoMonto' => "INT NULL DEFAULT NULL"
+    'fuenteTextoMonto' => "INT NULL DEFAULT NULL",
+    'esQr' => "TINYINT(1) NULL DEFAULT 0",
+    'tamanoQr' => "INT NULL DEFAULT 35",
+    'ejeXQr' => "INT NULL DEFAULT NULL",
+    'ejeYQr' => "INT NULL DEFAULT NULL"
 ];
 
 echo "Iniciando migración para la tabla: $tableName\n\n";
@@ -52,6 +56,36 @@ foreach ($fieldsToAdd as $column => $definition) {
         }
     } else {
         echo "La columna `$column` ya existe en `$tableName` (Saltando)\n";
+    }
+}
+
+// 2.1 Migración para tblProyecto (esQr, tamanoQr, ejeXQr, ejeYQr)
+$projTableName = 'tblProyecto';
+echo "\nIniciando migración para la tabla: $projTableName\n";
+$projColumns = [];
+$resProj = $mysqli->query("SHOW COLUMNS FROM `$projTableName`");
+if ($resProj) {
+    while ($row = $resProj->fetch_assoc()) {
+        $projColumns[] = strtolower($row['Field']);
+    }
+    $projFields = [
+        'esQr' => "TINYINT(1) NULL DEFAULT 0",
+        'tamanoQr' => "INT NULL DEFAULT 35",
+        'ejeXQr' => "INT NULL DEFAULT NULL",
+        'ejeYQr' => "INT NULL DEFAULT NULL"
+    ];
+    foreach ($projFields as $col => $def) {
+        if (!in_array(strtolower($col), $projColumns)) {
+            $sql = "ALTER TABLE `$projTableName` ADD COLUMN `$col` $def";
+            echo "Ejecutando: $sql ... ";
+            if ($mysqli->query($sql)) {
+                echo "OK\n";
+            } else {
+                echo "ERROR: " . $mysqli->error . "\n";
+            }
+        } else {
+            echo "La columna `$col` ya existe en `$projTableName` (Saltando)\n";
+        }
     }
 }
 

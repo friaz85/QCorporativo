@@ -51,8 +51,9 @@ echo "🧹 Limpiando carpeta remota (preservando backend/qpn y backend/pdfs)..."
 ssh -p $PORT -i $SSH_KEY $SERVER "
     mkdir -p $REMOTE_PATH/backend/qpn &&
     mkdir -p $REMOTE_PATH/backend/pdfs &&
+    mkdir -p $REMOTE_PATH/backend/library &&
     find $REMOTE_PATH -mindepth 1 ! -path '$REMOTE_PATH/backend*' -delete 2>/dev/null || true
-    find $REMOTE_PATH/backend -mindepth 1 ! -path '$REMOTE_PATH/backend/qpn*' ! -path '$REMOTE_PATH/backend/pdfs*' -delete 2>/dev/null || true
+    find $REMOTE_PATH/backend -mindepth 1 ! -path '$REMOTE_PATH/backend/qpn*' ! -path '$REMOTE_PATH/backend/pdfs*' ! -path '$REMOTE_PATH/backend/library*' -delete 2>/dev/null || true
     echo 'Carpeta limpia y lista.'
 "
 
