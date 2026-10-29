@@ -61,19 +61,20 @@ ssh -p $PORT -i $SSH_KEY $SERVER "
 # 4. Subir frontend
 # ─────────────────────────────────────────────
 echo "📤 Subiendo frontend..."
-rsync -avz -e "ssh -p $PORT -i $SSH_KEY" "$DIST_PATH" "$SERVER:$REMOTE_PATH/"
+rsync -avz --chmod=D755,F644 -e "ssh -p $PORT -i $SSH_KEY" "$DIST_PATH" "$SERVER:$REMOTE_PATH/"
 
 # ─────────────────────────────────────────────
 # 5. Subir backend
 # ─────────────────────────────────────────────
 echo "📤 Subiendo backend..."
-rsync -avz -e "ssh -p $PORT -i $SSH_KEY" "backend/" "$SERVER:$REMOTE_PATH/backend/"
+rsync -avz --chmod=D755,F644 -e "ssh -p $PORT -i $SSH_KEY" "backend/" "$SERVER:$REMOTE_PATH/backend/"
 
 # ─────────────────────────────────────────────
-# 6. Subir archivos adicionales
+# 6. Subir archivos adicionales y asegurar permisos
 # ─────────────────────────────────────────────
 echo "📤 Subiendo archivos de la raíz php..."
 scp -P $PORT -i $SSH_KEY check_telefonia.php describe_ce.php schema.php kre-ta-temp-check.php "$SERVER:$REMOTE_PATH/"
+ssh -p $PORT -i $SSH_KEY $SERVER "chmod 755 $REMOTE_PATH $REMOTE_PATH/backend"
 
 echo ""
 echo "✅ Despliegue completado: https://qrewards.com.mx/corporativo/"
